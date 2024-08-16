@@ -1,0 +1,48 @@
+checkBalance:
+  readableName: "Check balance"
+  message: "Your balance is {{balance}}. Would you like to do anything else?"
+  options:
+    "1": "support"
+    "2": "end"
+  action: "fetchBalance"
+
+support:
+  readableName: "Ask for support"
+  message: "Please describe your issue. Type 'back' to return to the main menu."
+  options:
+    "back": "start"
+
+end:
+  message: "Thank you for using our service. Have a great day!"
+
+
+start:
+    message: "Seja bem vindo(a)! Em qual estação você está?"
+    action:
+      type: "selectStation"
+      next: "selectCharger"
+
+selectCharger:
+    message: "Qual carregador você deseja usar?"
+    action:
+      type: "selectCharger"
+      next: "checkCarConnection"
+
+carNotConnectedToCharger:
+    message: "Seu carro não está conectado ao carregador. Por favor, conecte o cabo e tente novamente."
+
+askForCpf:
+    message: "Ótimo! Seu carro está conectado ao carregador! Por favor, digite seu CPF: "
+
+pendingPayment:
+    message: "Você tem um pagamento pendente de R$ {{amount}}. Deseja pagar agora?"
+    action:
+      type: "selectPaymentMethod"
+
+
+
+selectPaymentMethod:
+    message: "Qual método de pagamento você deseja usar?"
+    action:
+      type: "selectPaymentMethod"
+      next: "selectPaymentMethod"

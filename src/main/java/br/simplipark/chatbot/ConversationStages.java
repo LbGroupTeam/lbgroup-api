@@ -1,0 +1,11 @@
+package br.simplipark.chatbot;
+
+public enum ConversationStages {
+    GREETING,
+    CHARGING_STATION_SELECTION,
+    CHARGER_SELECTION,
+    IDENTITY_VERIFICATION,
+    CHARGING,
+    PAYMENT_METHOD_SELECTION,
+    PAYMENT_ACCEPTED
+}
