@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 
@@ -28,7 +29,8 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class OCPPServerImpl implements OCPPServer {
 
-    private static final String BASE_URL = "http://54.81.97.51:9220/api/v1";
+    private final String baseUrl;
+
     private static final String CENTRAL_SYSTEM_URL = "/CentralSystem";
     private static final String CHARGE_POINT_URL = "/ChargePoint";
 
@@ -37,7 +39,9 @@ public class OCPPServerImpl implements OCPPServer {
     private final ChargingDataRelationsService chargingDataRelationsService;
     private final OCPPTransactionChargingDataRelationRepository ocppTransactionChargingDataRelationRepository;
 
-    public OCPPServerImpl(ChargingDataRelationsService chargingDataRelationsService, OCPPTransactionChargingDataRelationRepository ocppTransactionChargingDataRelationRepository) {
+    public OCPPServerImpl(@Value("${ocpp.base_url}") String baseUrl, ChargingDataRelationsService chargingDataRelationsService, OCPPTransactionChargingDataRelationRepository ocppTransactionChargingDataRelationRepository) {
+        this.baseUrl = baseUrl;
+
         this.chargingDataRelationsService = chargingDataRelationsService;
         this.ocppTransactionChargingDataRelationRepository = ocppTransactionChargingDataRelationRepository;
     }
@@ -46,7 +50,7 @@ public class OCPPServerImpl implements OCPPServer {
     public List<Charger> getChargers() {
         log.info("Fetching list of chargers from OCPP server...");
 
-        var request = HttpRequest.newBuilder(URI.create(BASE_URL + CENTRAL_SYSTEM_URL + "/ChargePointList"))
+        var request = HttpRequest.newBuilder(URI.create(baseUrl + CENTRAL_SYSTEM_URL + "/ChargePointList"))
                 .GET()
                 .build();
 
@@ -73,7 +77,6 @@ public class OCPPServerImpl implements OCPPServer {
             log.info("Successfully retrieved {} chargers.", chargers.size());
         } catch (IOException e) {
             log.error("Failed to retrieve chargers", e);
-            throw new RuntimeException(e);
         }
 
         return chargers;
@@ -81,44 +84,54 @@ public class OCPPServerImpl implements OCPPServer {
 
     @Override
     public boolean startCharging(Charger charger) {
-        var chargerIdAndTagId = parseIdAndTagIdFromCharger(charger);
-        var chargerId = chargerIdAndTagId[0];
-        var idTag = chargerIdAndTagId[1];
+        try {
+            var chargerIdAndTagId = parseIdAndTagIdFromCharger(charger);
+            var chargerId = chargerIdAndTagId[0];
+            var idTag = chargerIdAndTagId[1];
 
-        var request = HttpRequest.newBuilder(URI.create(BASE_URL + CHARGE_POINT_URL + "/" + chargerId + "/RemoteStartTransaction"))
-                .POST(HttpRequest.BodyPublishers.ofString("connectorId=1&idTag=" + idTag))
-                .header("Content-Type", MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                .build();
+            var request = HttpRequest.newBuilder(URI.create(baseUrl + CHARGE_POINT_URL + "/" + chargerId + "/RemoteStartTransaction"))
+                    .POST(HttpRequest.BodyPublishers.ofString("connectorId=1&idTag=" + idTag))
+                    .header("Content-Type", MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                    .build();
 
-        log.debug("Sending start charging request for charger: {} with idTag: {}. Request: {}", charger, idTag, request);
-        var result = parseSimpleAcceptOrRejectRequest(request);
+            log.debug("Sending start charging request for charger: {} with idTag: {}. Request: {}", charger, idTag, request);
+            var result = parseSimpleAcceptOrRejectRequest(request);
 
-        log.info("Charging start request for charger {} was successful: {}", charger, result);
+            log.info("Charging start request for charger {} was successful: {}", charger, result);
 
-        return result;
+            return result;
+        } catch (Exception e) {
+            log.error("Failed to start charging for charger: {}", charger, e);
+            return false;
+        }
     }
 
     @Override
     public boolean stopCharging(Charger charger) {
-        log.info("Starting charging process for charger: {}", charger);
+        try {
+            log.info("Stop charging process for charger: {}", charger);
 
-        var chargerId = parseChargerId(charger);
-        var lastTransactionIdOfCharger = fetchLastTransactionData(chargerId).transactionId();
+            var chargerId = parseChargerId(charger);
+            var lastTransactionIdOfCharger = fetchLastTransactionData(chargerId).transactionId();
 
-        var request = HttpRequest.newBuilder(URI.create(BASE_URL + CHARGE_POINT_URL + "/" + chargerId + "/RemoteStopTransaction"))
-                .POST(HttpRequest.BodyPublishers.ofString("transactionId=" + lastTransactionIdOfCharger))
-                .header("Content-Type", MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                .build();
+            var request = HttpRequest.newBuilder(URI.create(baseUrl + CHARGE_POINT_URL + "/" + chargerId + "/RemoteStopTransaction"))
+                    .POST(HttpRequest.BodyPublishers.ofString("transactionId=" + lastTransactionIdOfCharger))
+                    .header("Content-Type", MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                    .build();
 
-        log.debug("Sending stop charging request for charger: {} with transactionId: {}. Request: {}", charger, lastTransactionIdOfCharger, request);
-        boolean hasStoppedSuccessfully = parseSimpleAcceptOrRejectRequest(request);
-        log.info("Charging stop request for charger {} was successful: {}", charger, hasStoppedSuccessfully);
+            log.debug("Sending stop charging request for charger: {} with transactionId: {}. Request: {}", charger, lastTransactionIdOfCharger, request);
+            boolean hasStoppedSuccessfully = parseSimpleAcceptOrRejectRequest(request);
+            log.info("Charging stop request for charger {} was successful: {}", charger, hasStoppedSuccessfully);
 
-        if (hasStoppedSuccessfully) {
-            callbacks.remove(charger);
+            if (hasStoppedSuccessfully) {
+                callbacks.remove(charger);
+            }
+
+            return hasStoppedSuccessfully;
+        } catch (Exception e) {
+            log.error("Failed to stop charging for charger: {}", charger, e);
+            return false;
         }
-
-        return hasStoppedSuccessfully;
     }
 
     @Override
@@ -154,7 +167,7 @@ public class OCPPServerImpl implements OCPPServer {
             Thread.currentThread().interrupt();
         }
 
-        var request = HttpRequest.newBuilder(URI.create(BASE_URL + CENTRAL_SYSTEM_URL + "/TransactionList"))
+        var request = HttpRequest.newBuilder(URI.create(baseUrl + CENTRAL_SYSTEM_URL + "/TransactionList"))
                 .POST(HttpRequest.BodyPublishers.ofString("identity=" + chargerId))
                 .header("Content-Type", MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .build();
@@ -180,29 +193,23 @@ public class OCPPServerImpl implements OCPPServer {
         }
     }
 
-    private boolean parseSimpleAcceptOrRejectRequest(HttpRequest request) {
-        try {
-            var response = Util.sendSimpleHttpRequest(request);
+    private boolean parseSimpleAcceptOrRejectRequest(HttpRequest request) throws IOException {
+        var response = Util.sendSimpleHttpRequest(request);
 
-            log.debug("Response for simple request: {}", response.body());
+        log.debug("Response for simple request: {}", response.body());
 
-            var mapper = JsonMapper.builder().build();
-            var jsonNode = mapper.readTree(response.body());
+        var mapper = JsonMapper.builder().build();
+        var jsonNode = mapper.readTree(response.body());
 
-            if (jsonNode.has("status")) {
-                var status = jsonNode.get("status").asText();
+        if (jsonNode.has("status")) {
+            var status = jsonNode.get("status").asText();
 
-                log.info("Request status: {}", status);
+            log.info("Request status: {}", status);
 
-                return status.equals("Accepted");
-            }
-
-            return false;
-
-        } catch (IOException e) {
-            log.error("Failed to parse request", e);
-            throw new RuntimeException(e);
+            return status.equals("Accepted");
         }
+
+        return false;
     }
 
     private void initializeChargingListener() {
@@ -222,12 +229,17 @@ public class OCPPServerImpl implements OCPPServer {
 
             for (var charger : stoppedChargers) {
                 var callback = callbacks.get(charger);
+
+                log.info("Executing callback for charger: {}", charger);
+
                 callback.run();
 
                 log.info("Executed callback for charger: {}", charger);
 
                 callbacks.remove(charger);
             }
+
+            log.info("Finished stopped chargers check");
         };
 
         ThreadManager.schedulePeriodicTask(task, 60, TimeUnit.SECONDS);
@@ -237,7 +249,13 @@ public class OCPPServerImpl implements OCPPServer {
         log.info("Checking if charger {} has stopped", charger);
 
         var chargerId = parseChargerId(charger);
-        var lastTransaction = fetchLastTransactionData(chargerId);
+        TransactionData lastTransaction;
+        try {
+            lastTransaction = fetchLastTransactionData(chargerId);
+        } catch (Exception e) {
+            log.error("Failed to fetch last transaction data for charger: {}", charger, e);
+            return false;
+        }
 
         return lastTransaction.stopValue() != 0;
     }
@@ -271,17 +289,5 @@ public class OCPPServerImpl implements OCPPServer {
 
     private String[] parseIdAndTagIdFromCharger(Charger charger) {
         return OCPPCharger.parseOCPPIdentity(charger).split("/");
-    }
-
-    public static void main(String[] args) {
-        OCPPServer ocppServer = new OCPPServerImpl(null, null);
-        var chargers = ocppServer.getChargers();
-
-//        System.out.println(ocppServer.startCharging(chargers.getLast()));
-
-//        ocppServer.stopCharging(chargers.getLast());
-
-        var chargingData = ocppServer.getChargingData(chargers.getLast());
-        System.out.println(chargingData);
     }
 }

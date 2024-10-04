@@ -156,7 +156,7 @@ public class PaymentFlow {
         if (chatbotMessage.body().isEmpty()) {
             messageDispatcher.queueMessage(chatbotUser, "Você escolheu pagar com cartão de crédito. " +
                     "Segue o link da plataforma de pagamentos:\n\n" +
-                    paymentService.createLinkForCreditCardPayment(chatbotUser.user(), outcome -> onCreditCardPaymentOutcome(chatbotUser, outcome), payments) + "\n\n" +
+                    paymentService.createLinkForCreditCardPayment(chatbotUser.user(), payment -> onCreditCardPaymentOutcome(chatbotUser, payment.outcome()), payments) + "\n\n" +
                     "Caso deseje voltar para a escolha de métodos de pagamento, digite 'voltar'.");
 
             return;

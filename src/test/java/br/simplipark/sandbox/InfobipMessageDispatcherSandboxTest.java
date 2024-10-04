@@ -1,5 +1,6 @@
-package br.simplipark.chatbot.messagedispatcher.infobip;
+package br.simplipark.sandbox;
 
+import br.simplipark.chatbot.messagedispatcher.infobip.InfobipMessageDispatcher;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -35,6 +35,8 @@ public class InfobipMessageDispatcher implements MessageDispatcher {
         this.apiKey = apiKey;
         this.domain = domain;
         this.senderNumber = senderNumber;
+
+        log.info("InfobipMessageDispatcher created with apiKey: {}, domain: {}, senderNumber: {}", apiKey, domain, senderNumber);
     }
 
     @Override
@@ -83,6 +85,11 @@ public class InfobipMessageDispatcher implements MessageDispatcher {
         log.info("Received message: {}", messageDTO);
 
         for (IncomingMessageDTO.Result result : messageDTO.getResults()) {
+            if (result.getMessage() == null) {
+                log.warn("Received message with null message");
+                continue;
+            }
+
             String body = result.getMessage().getText();
             if (body == null) {
                 log.warn("Received message with null body");

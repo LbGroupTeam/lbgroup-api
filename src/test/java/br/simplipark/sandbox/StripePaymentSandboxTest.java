@@ -1,5 +1,6 @@
-package br.simplipark.payment.isolated;
+package br.simplipark.sandbox;
 
+import br.simplipark.payment.isolated.StripePayment;
 import br.simplipark.user.User;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;

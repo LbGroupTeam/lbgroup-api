@@ -1,10 +1,13 @@
 package br.simplipark.util;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
+@Slf4j
 public class Util {
     private Util() {
     }
@@ -44,6 +47,8 @@ public class Util {
         try (HttpClient client = HttpClient.newHttpClient()) {
             return client.send(request, HttpResponse.BodyHandlers.ofString());
         } catch (InterruptedException e) {
+            log.error("Thread interrupted while sending HTTP request", e);
+
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);
         }

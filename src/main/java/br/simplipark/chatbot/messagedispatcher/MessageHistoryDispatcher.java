@@ -89,7 +89,7 @@ public class MessageHistoryDispatcher implements MessageDispatcher {
     }
 
     private static String buildCurrentTimestamp() {
-        return LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+        return LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"));
     }
 
     private static String parseContactNumber(String contact) {

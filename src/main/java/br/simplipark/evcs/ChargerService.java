@@ -59,23 +59,29 @@ public class ChargerService {
     }
 
     public ChargingData startCharging(Charger charger) {
-        log.info("Starting charging process for charger: {}", charger.name());
+        log.info("Starting charging process for charger: {}", charger);
         var chargingData = handleStartChargingRequest(charger);
 
         if (chargingData == null) {
-            log.warn("Charging failed for charger: {}", charger.name());
+            log.warn("Charging failed for charger: {}", charger);
             return null;
         }
 
         var chargepointId = Chargepoint.parseChargepointId(charger);
         chargingDataRelationsService.createRelationBetweenChargerAndChargingData(chargepointId, chargingData);
 
-        log.info("Charging started successfully for charger: {}", charger.name());
+        log.info("Charging started successfully for charger: {}", charger);
         return chargingData;
     }
 
     public ChargingData stopCharging(Charger charger) {
-        log.info("Stopping charging process for charger: {}", charger.name());
+        log.info("Stopping charging process for charger: {}", charger);
+
+        if (charger.operationMode() == OperationMode.DISABLED) {
+            log.warn("Trying to stop charge for charger {} but charger is disabled.", charger);
+            return null;
+        }
+
         if (charger.operationMode() == OperationMode.AUTOMATIC_OCPP) {
             ocppServer.stopCharging(charger);
             return ocppServer.getChargingData(charger);
@@ -85,14 +91,14 @@ public class ChargerService {
     }
 
     public void onStopChargingAutomatically(Charger charger, Consumer<ChargingData> consumer) {
-        log.info("Registering stop charging callback for charger: {}", charger.name());
+        log.info("Registering stop charging callback for charger: {}", charger);
         if (charger.operationMode() != OperationMode.AUTOMATIC_OCPP) {
             return;
         }
 
         Runnable callback = () -> {
             var chargingData = ocppServer.getChargingData(charger);
-            log.info("Callback executed for charger: {}", charger.name());
+            log.info("Callback executed for charger: {}", charger);
             consumer.accept(chargingData);
         };
 
@@ -100,16 +106,22 @@ public class ChargerService {
     }
 
     private ChargingData handleStartChargingRequest(Charger charger) {
+        if (charger.operationMode() == OperationMode.DISABLED) {
+            log.warn("Trying to start charge for charger {} but charger is disabled.", charger);
+
+            return null;
+        }
+
         if (charger.operationMode() == OperationMode.AUTOMATIC_OCPP) {
-            log.info("Attempting to start charging for charger in AUTOMATIC_OCPP mode: {}", charger.name());
+            log.info("Attempting to start charging for charger in AUTOMATIC_OCPP mode: {}", charger);
             boolean startedSuccessfully = ocppServer.startCharging(charger);
 
             if (!startedSuccessfully) {
-                log.warn("Failed to start charging for charger: {}", charger.name());
+                log.warn("Failed to start charging automatically for charger: {}", charger);
                 return null;
             }
 
-            log.info("Charging started successfully for charger: {}", charger.name());
+            log.info("Charging started successfully, automatically, for charger: {}", charger);
             return ocppServer.getChargingData(charger);
         } else {
             return handleOfflineChargerStartChargingRequest(charger);
@@ -121,7 +133,7 @@ public class ChargerService {
 
         for (Charger ocppCharger : ocppChargers) {
             if (ocppCharger.name().equals(String.valueOf(databaseCharger.getLocalCharge()))) {
-                log.info("Merging OCPP charger data with database charger data for charger: {}", charger.name());
+                log.info("Merging OCPP charger data with database charger data for charger: {}", charger);
                 charger = charger.merge(ocppCharger);
                 break;
             }
@@ -130,9 +142,9 @@ public class ChargerService {
     }
 
     private ChargingData handleOfflineChargerStartChargingRequest(Charger charger) {
-        log.info("Starting charging process for offline charger: {}", charger.name());
+        log.info("Starting charging process for offline charger: {}", charger);
         if (offlineChargers.containsKey(charger)) {
-            log.error("Offline charger {} is already charging", charger.name());
+            log.error("Offline charger {} is already charging", charger);
             throw new IllegalStateException("Charger is already charging");
         }
 
@@ -142,14 +154,14 @@ public class ChargerService {
         var chargingData = new ChargingData(0, startedAt, null);
         chargingData = chargingDataRelationsService.saveChargingData(chargingData);
 
-        log.info("Charging started for offline charger: {}", charger.name());
+        log.info("Charging started for offline charger: {}", charger);
         return chargingData;
     }
 
     private ChargingData handleOfflineChargerStopChargingRequest(Charger charger) {
-        log.info("Stopping charging process for offline charger: {}", charger.name());
+        log.info("Stopping charging process for offline charger: {}", charger);
         if (!offlineChargers.containsKey(charger)) {
-            log.error("Offline charger {} is not charging", charger.name());
+            log.error("Offline charger {} is not charging", charger);
             throw new IllegalStateException("Charger is not charging");
         }
 
@@ -158,7 +170,7 @@ public class ChargerService {
         var duration = Duration.between(startedAt, stoppedAt);
         var hoursCharged = duration.toMinutes() / 60.0;
 
-        log.info("Charging stopped for offline charger: {}. Duration: {} hours", charger.name(), hoursCharged);
+        log.info("Charging stopped for offline charger: {}. Duration: {} hours", charger, hoursCharged);
         return new ChargingData(hoursCharged * WATTS_PER_HOUR_OFFLINE_CHARGER, startedAt, stoppedAt);
     }
 }

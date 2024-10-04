@@ -25,6 +25,11 @@ public class MainMenuNode {
 
     private final UserService userService;
 
+    private final static String MENU_OPTIONS = """
+                1 - Iniciar carga
+                2 - Comprar LB Coins
+                """;
+
     public MainMenuNode(QueueMessageDispatcher queueMessageDispatcher, ConversationPathManager conversationPathManager, LbCoinsPurchaseFlow lbCoinsPurchaseFlow, ChargeVehicleFlow chargingFlow, PaymentFlow paymentFlow, UserService userService) {
         this.queueMessageDispatcher = queueMessageDispatcher;
         this.conversationPathManager = conversationPathManager;
@@ -46,7 +51,7 @@ public class MainMenuNode {
 
             conversationPathManager.navigateToImmediately(chatbotUser, MainConversationStage.GREETING.name());
 
-            e.printStackTrace();
+            log.error("Error handling message", e);
         }
     }
 
@@ -107,7 +112,7 @@ public class MainMenuNode {
         if (chatbotMessage.body().isEmpty()) {
             queueMessageDispatcher.queueMessage(chatbotUser,
                     "O que você gostaria de fazer?\n\n" +
-                            buildMainMenuOptions() + "\n" +
+                            MENU_OPTIONS + "\n" +
                             "Caso queria voltar para o menu principal, digite 'menu' a qualquer momento.");
 
             return;
@@ -146,17 +151,4 @@ public class MainMenuNode {
         }
     }
 
-    private String buildMainMenuOptions() {
-//        return """
-//                1 - Iniciar carga
-//                2 - Comprar LB Coins
-//                3 - Consultar histórico de cargas
-//                4 - Consultar saldo de LB Coins
-//                """;
-
-        return """
-                1 - Iniciar carga
-                2 - Comprar LB Coins
-                """;
-    }
 }

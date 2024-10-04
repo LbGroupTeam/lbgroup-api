@@ -64,7 +64,7 @@ class MessageHistoryDispatcherTest {
         String timestamp = message[0].substring(1);
 
         try {
-            LocalDateTime.parse(timestamp, DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+            LocalDateTime.parse(timestamp, DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"));
         } catch (Exception e) {
             fail("Timestamp is not in the correct format");
         }

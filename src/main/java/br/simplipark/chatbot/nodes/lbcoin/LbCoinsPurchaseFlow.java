@@ -6,11 +6,9 @@ import br.simplipark.chatbot.ConversationPathManager;
 import br.simplipark.chatbot.messagedispatcher.QueueMessageDispatcher;
 import br.simplipark.chatbot.nodes.MainConversationStage;
 import br.simplipark.payment.PaymentService;
-import br.simplipark.payment.currency.LBCoinsConverter;
 import br.simplipark.payment.model.PaymentOutcome;
 import br.simplipark.user.UserService;
 import br.simplipark.util.FormatingUtils;
-import br.simplipark.util.Util;
 import org.springframework.stereotype.Service;
 
 import static br.simplipark.chatbot.nodes.lbcoin.LbCoinsPurchaseFlowStage.ASK_AMOUNT;
@@ -35,71 +33,39 @@ public class LbCoinsPurchaseFlow {
 
     public void handleMessage(ChatbotUser chatbotUser, ChatbotMessage chatbotMessage) {
         if (!conversationPathManager.hasNextNode(chatbotUser)) {
-            conversationPathManager.addNodeToPathImmediately(chatbotUser, ASK_AMOUNT.name());
+            conversationPathManager.addNodeToPathImmediately(chatbotUser, CONFIRM_PURCHASE.name());
 
             return;
         }
 
         LbCoinsPurchaseFlowStage currentStage = LbCoinsPurchaseFlowStage.valueOf(conversationPathManager.getNextNode(chatbotUser));
 
-        switch (currentStage) {
-            case ASK_AMOUNT -> handleLBCoinsPurchase(chatbotUser, chatbotMessage);
-            case CONFIRM_PURCHASE -> handlePurchaseConfirmation(chatbotUser, chatbotMessage);
+        if (currentStage == CONFIRM_PURCHASE) {
+            handlePurchaseConfirmation(chatbotUser, chatbotMessage);
         }
-    }
-
-    private void handleLBCoinsPurchase(ChatbotUser chatbotUser, ChatbotMessage chatbotMessage) {
-        if (chatbotMessage.body().isEmpty()) {
-            messageDispatcher.queueMessage(chatbotUser, "Você deseja comprar quantas LBCoins?");
-
-            return;
-        }
-
-        if (Util.isNotInt(chatbotMessage.body())) {
-            handleInvalidLBCoinsAmount(chatbotUser, "Por favor, digite um valor válido.\n\n");
-
-            return;
-        }
-
-        int amount = Integer.parseInt(chatbotMessage.body());
-
-        if (amount <= 0) {
-            handleInvalidLBCoinsAmount(chatbotUser, "Por favor, digite um valor maior que zero.\n\n");
-
-            return;
-        }
-
-        chatbotUser.sessionData().setLbCoinsToPurchase(amount);
-
-        conversationPathManager.replaceLastPathNodeImmediately(chatbotUser, CONFIRM_PURCHASE.name());
     }
 
     private void handlePurchaseConfirmation(ChatbotUser chatbotUser, ChatbotMessage chatbotMessage) {
-        if ("voltar".equalsIgnoreCase(chatbotMessage.body())) {
-            conversationPathManager.replaceLastPathNodeImmediately(chatbotUser, ASK_AMOUNT.name());
-
-            return;
-        }
-
         if (!chatbotMessage.body().isEmpty()) {
             messageDispatcher.queueMessage(chatbotUser, "Não entendemos sua mensagem. Iremos gerar um novo link para você.\n\n");
         }
 
-        int amount = chatbotUser.sessionData().getLbCoinsToPurchase();
+        var paymentLink = paymentService.createLinkForLBCoinsPurchase(chatbotUser.user(), payment -> onPaymentOutcome(chatbotUser, payment.outcome()));
 
-        var formattedCost = FormatingUtils.roundToTwoDecimals(LBCoinsConverter.convertLBCoinsToBRL(amount));
-        messageDispatcher.queueMessage(chatbotUser, "Você escolheu comprar " + amount + " LBCoins. Isso custará R$ " + formattedCost + ".\n\n");
-
-        var paymentLink = paymentService.createLinkForLBCoinsPurchase(chatbotUser.user(), amount, outcome -> onPaymentOutcome(chatbotUser, outcome));
-
-        messageDispatcher.queueMessage(chatbotUser, "Segue o link para efetuar o pagamento: " + paymentLink + "\n\n" +
-                "Caso mude de ideia, digite 'voltar' para alterar a quantidade de LB Coins a ser comprada.");
+        messageDispatcher.queueMessage(chatbotUser, "Fornecemos pacotes de LBCoins para você comprar.\n\n" +
+                                                    "Segue o link para efetuar o pagamento: \n" + paymentLink + "\n\n" +
+                                                    "Ao acessá-lo, você poderá escolher a quantidade de pacotes que deseja comprar. " +
+                                                    "Ao finalizar o pagamento, seu saldo será atualizado automaticamente.");
     }
 
     private void onPaymentOutcome(ChatbotUser chatbotUser, PaymentOutcome outcome) {
         if (outcome == PaymentOutcome.ACCEPTED) {
-            messageDispatcher.queueMessage(chatbotUser, "Compra efetuada com sucesso. Seu saldo agora é de " + userService.getLbCoinsBalance(chatbotUser.user()) + " LBCoins.\n\n");
+            String saldo = FormatingUtils.roundToTwoDecimals(userService.getLbCoinsBalance(chatbotUser.user()));
+
+            messageDispatcher.queueMessage(chatbotUser, "Compra efetuada com sucesso. Seu saldo agora é de " + saldo + " LBCoins.\n\n");
             messageDispatcher.sendQueuedMessages(chatbotUser);
+
+            conversationPathManager.navigateTo(chatbotUser, MainConversationStage.GREETING.name());
 
         } else {
             messageDispatcher.queueMessage(chatbotUser, "O pagamento não foi confirmado. Retornando ao menu principal.\n\n");

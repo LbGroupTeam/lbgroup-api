@@ -1,15 +1,17 @@
 package br.simplipark.payment.isolated;
 
 import br.simplipark.payment.PaymentGateway;
+import br.simplipark.payment.model.CompletedPayment;
 import br.simplipark.payment.model.PaymentOutcome;
 import br.simplipark.user.User;
+import br.simplipark.util.Cryptographer;
+import br.simplipark.util.Util;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
 import com.stripe.model.Price;
-import com.stripe.model.WebhookEndpoint;
 import com.stripe.model.checkout.Session;
-import com.stripe.net.ApiResource;
+import com.stripe.net.Webhook;
 import com.stripe.param.PriceCreateParams;
 import com.stripe.param.WebhookEndpointCreateParams;
 import com.stripe.param.checkout.SessionCreateParams;
@@ -28,37 +30,52 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RestController
 public class StripePayment implements PaymentGateway {
-    private final Map<String, Session> userSessions = new HashMap<>();
-    private final Map<String, Consumer<PaymentOutcome>> callbacks = new HashMap<>();
+    private final String webhookSecret;
+    private final String lbCoinsPurchaseLink;
 
-    public StripePayment(@Value("${stripe.api_key}") String apiKey) {
+    private final Map<String, Consumer<CompletedPayment>> callbacks = new HashMap<>();
+
+    public StripePayment(@Value("${stripe.api_key}") String apiKey, @Value("${stripe.webhook_secret}") String webhookSecret, @Value("${stripe.lb_coins_purchase_link}") String lbCoinsPurchaseLink) {
         Stripe.apiKey = apiKey;
+
+        this.webhookSecret = webhookSecret;
+        this.lbCoinsPurchaseLink = lbCoinsPurchaseLink;
     }
 
     @Override
     public String createLinkForPayment(User user, double amount) {
         try {
             var userId = String.valueOf(user.id());
-            var session = createStripeSession(userId, amount);
-            userSessions.put(userId, session);
+            var url = createStripeSession(userId, amount).getUrl();
 
-            log.info("Payment link created for user [{}]: {}", userId, session.getUrl());
-            return session.getUrl();
+            log.info("Payment link created for user [{}]: {}", userId, url);
+            return url;
         } catch (StripeException e) {
-            log.error("Error creating payment link for user [{}]: {}", user.id(), e.getMessage());
-            throw new RuntimeException("Erro ao criar link de pagamento");
+            throw new RuntimeException("Error creating payment link for user " + user.id(), e);
         }
     }
 
     @Override
-    public void onPaymentOutcome(User user, Consumer<PaymentOutcome> outcomeHandler) {
+    public void onPaymentOutcome(User user, Consumer<CompletedPayment> outcomeHandler) {
         callbacks.put(String.valueOf(user.id()), outcomeHandler);
         log.info("Callback registered for user [{}]", user.id());
     }
 
+    @Override
+    public String createLinkForLBCoinsPurchase(User user) {
+        try {
+            return lbCoinsPurchaseLink + "?client_reference_id=" + Cryptographer.encryptUrlSafe(String.valueOf(user.id()));
+        } catch (Exception e) {
+            throw new RuntimeException("Could not create link for LB Coins purchase for User: " + user, e);
+        }
+    }
+
     @PostMapping(value = "/stripe-webhook")
     public void receiveMessagePost(HttpEntity<String> request) {
-        Event event = parseEventFromRequest(request.getBody());
+        log.debug("Received request at Stripe webhook: {}", request.getBody());
+
+        String signatureHeader = extractSignatureHeader(request);
+        Event event = parseEventFromRequest(request.getBody(), signatureHeader);
 
         log.info("Received event: {}", event);
 
@@ -70,19 +87,60 @@ public class StripePayment implements PaymentGateway {
 
         var stripeObject = stripeEventDeserializer.getObject().get();
 
-        if (isRegistredCheckoutEvent(event)) {
-            var session = (Session) stripeObject;
-            handleCheckoutEvent(session.getClientReferenceId());
+        if (!isRegistredCheckoutEvent(event)) {
+            log.warn("Received unregistered event: {}", event.getType());
+            return;
+        }
+
+        var session = (Session) stripeObject;
+        handleCheckoutEvent(session, parseUserId(session));
+    }
+
+    private static String extractSignatureHeader(HttpEntity<String> request) {
+        List<String> values = request.getHeaders().get("Stripe-Signature");
+        if (values == null) {
+            throw new RuntimeException("No Stripe-Signature header found in request");
+        }
+
+        return values.getFirst();
+    }
+
+    private Event parseEventFromRequest(String payload, String signatureHeader) {
+        try {
+            return Webhook.constructEvent(payload, signatureHeader, webhookSecret);
+        } catch (Exception e) {
+            throw new RuntimeException("Error parsing Stripe event", e);
         }
     }
 
-    private Event parseEventFromRequest(String payload) {
-        try {
-            return ApiResource.GSON.fromJson(payload, Event.class);
-        } catch (Exception e) {
-            log.error("Error parsing Stripe event: {}", e.getMessage());
-            throw new RuntimeException("Erro ao parsear evento do Stripe");
+    private void handleCheckoutEvent(Session session, String userId) {
+        var outcome = retrievePaymentOutcome(session);
+        double amountPurchased = session.getAmountTotal() / 100.0;
+
+        log.debug("Calling Stripe callback for user [{}]", userId);
+
+        var callback = callbacks.get(userId);
+        if (callback == null) {
+            log.warn("No callback found for user [{}]", userId);
+
+            return;
         }
+
+        callback.accept(new CompletedPayment(amountPurchased, outcome));
+
+        log.debug("Callback called for user [{}]", userId);
+
+        log.info("Payment outcome for user [{}]: {}", userId, outcome);
+
+        callbacks.remove(userId);
+    }
+
+    private PaymentOutcome retrievePaymentOutcome(Session session) {
+        return switch (session.getStatus()) {
+            case "complete" -> PaymentOutcome.ACCEPTED;
+            case "open", "expired" -> PaymentOutcome.REJECTED;
+            default -> throw new RuntimeException("Unknown payment status: " + session.getStatus());
+        };
     }
 
     private static Session createStripeSession(String userId, double amount) throws StripeException {
@@ -111,42 +169,8 @@ public class StripePayment implements PaymentGateway {
         return Session.create(sessionParams);
     }
 
-    private void handleCheckoutEvent(String userId) {
-        if (!userSessions.containsKey(userId)) {
-            log.warn("No session found for user [{}]", userId);
-            return;
-        }
-
-        var sessionId = userSessions.get(userId).getId();
-
-        try {
-            var session = Session.retrieve(sessionId);
-
-            var outcome = retrievePaymentOutcome(session);
-            var callback = callbacks.get(userId);
-            if (callback != null) {
-                callback.accept(outcome);
-                callbacks.remove(userId);
-                log.info("Payment outcome for user [{}]: {}", userId, outcome);
-            }
-        } catch (StripeException e) {
-            log.error("Error retrieving session for user [{}]: {}", userId, e.getMessage());
-        }
-    }
-
     private static Long getAmountInCents(double amount) {
         return (long) (amount * 100);
-    }
-
-    private PaymentOutcome retrievePaymentOutcome(Session session) {
-        return switch (session.getStatus()) {
-            case "complete" -> PaymentOutcome.ACCEPTED;
-            case "open", "expired" -> PaymentOutcome.REJECTED;
-            default -> {
-                log.error("Unknown payment status: {}", session.getStatus());
-                throw new RuntimeException("Status de pagamento desconhecido: " + session.getStatus());
-            }
-        };
     }
 
     private boolean isRegistredCheckoutEvent(Event event) {
@@ -165,26 +189,15 @@ public class StripePayment implements PaymentGateway {
         );
     }
 
-    public static void main(String[] args) {
-        Stripe.apiKey = "";
-
-        WebhookEndpointCreateParams params =
-                WebhookEndpointCreateParams.builder()
-                        .setUrl("https://fleet-magnetic-chigger.ngrok-free.app/stripe-webhook")
-                        .addAllEnabledEvent(getCheckoutEventsToRegister())
-                        .build();
-
-        try {
-
-            WebhookEndpoint endpoint = WebhookEndpoint.create(params);
-            System.out.println(endpoint);
-
-        } catch (StripeException e) {
-            throw new RuntimeException(e);
+    private static String parseUserId(Session session) {
+        if (Util.isNotInt(session.getClientReferenceId())) {
+            try {
+                return Cryptographer.decrypt(session.getClientReferenceId());
+            } catch (Exception e) {
+                throw new RuntimeException("Error decrypting user ID", e);
+            }
         }
 
-//        StripePayment stripePayment = new StripePayment("");
-//
-//        System.out.println(stripePayment.createLinkForPayment(new User(0, "owiemfiomew", "WOEIFM"), 0.50));
+        return session.getClientReferenceId();
     }
 }

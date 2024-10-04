@@ -2,6 +2,7 @@ package br.simplipark.payment;
 
 import br.simplipark.payment.currency.LBCoinsConverter;
 import br.simplipark.payment.exceptions.UnsuficientBalanceException;
+import br.simplipark.payment.model.CompletedPayment;
 import br.simplipark.payment.model.Payment;
 import br.simplipark.payment.model.PaymentOutcome;
 import br.simplipark.payment.model.PaymentStatus;
@@ -27,7 +28,7 @@ public class PaymentService {
         this.userService = userService;
     }
 
-    public String createLinkForCreditCardPayment(User user, Consumer<PaymentOutcome> onOutcome, List<Payment> payments) {
+    public String createLinkForCreditCardPayment(User user, Consumer<CompletedPayment> onOutcome, List<Payment> payments) {
         log.info("Creating credit card payment link for User [{}].", user.id());
 
         var paymentsFromDatabase = fetchPaymentsFromDatabase(payments);
@@ -38,15 +39,19 @@ public class PaymentService {
         String paymentLink = paymentGateway.createLinkForPayment(user, totalCost);
         log.info("Payment link created for User [{}]: [{}]", user.id(), paymentLink);
 
-        Consumer<PaymentOutcome> onOutcomeWithDatabaseUpdate = (outcome) -> {
-            if (outcome == PaymentOutcome.ACCEPTED) {
-                log.info("Payment accepted for User [{}]. Setting all payments as complete.", user.id());
-                setAllPaymentsAsComplete(paymentsFromDatabase);
-            } else {
-                log.warn("Payment not accepted for User [{}]. Outcome: [{}]", user.id(), outcome);
+        Consumer<CompletedPayment> onOutcomeWithDatabaseUpdate = (payment) -> {
+            if (payment.outcome() != PaymentOutcome.ACCEPTED) {
+                log.warn("Payment not accepted for User [{}]. Outcome: [{}]", user.id(), payment);
+
+                onOutcome.accept(payment);
+
+                return;
             }
 
-            onOutcome.accept(outcome);
+            log.info("Payment accepted for User [{}]. Setting all payments as complete.", user.id());
+            setAllPaymentsAsComplete(paymentsFromDatabase);
+
+            onOutcome.accept(payment);
         };
 
         paymentGateway.onPaymentOutcome(user, onOutcomeWithDatabaseUpdate);
@@ -78,24 +83,27 @@ public class PaymentService {
         log.info("Updated LB Coins balance for User [{}] after payment.", user.id());
     }
 
-    public String createLinkForLBCoinsPurchase(User user, double amount, Consumer<PaymentOutcome> onOutcome) {
-        log.info("Creating link for LB Coins purchase for User [{}]. Amount: [{}]", user.id(), amount);
+    public String createLinkForLBCoinsPurchase(User user, Consumer<CompletedPayment> onOutcome) {
+        log.info("Creating link for LB Coins purchase for User [{}]", user.id());
+        String paymentLink = paymentGateway.createLinkForLBCoinsPurchase(user);
 
-        double amountInBRL = LBCoinsConverter.convertLBCoinsToBRL(amount);
-        log.info("Converted amount to BRL: [{}] for User [{}].", amountInBRL, user.id());
+        paymentGateway.onPaymentOutcome(user, (payment) -> {
+            if (payment.outcome() != PaymentOutcome.ACCEPTED) {
+                log.warn("Payment not accepted for LB Coins purchase for User [{}]. Outcome: [{}]", user.id(), payment);
 
-        String paymentLink = paymentGateway.createLinkForPayment(user, amountInBRL);
-        log.info("Payment link created for LB Coins purchase for User [{}]: [{}]", user.id(), paymentLink);
+                onOutcome.accept(payment);
 
-        paymentGateway.onPaymentOutcome(user, (outcome) -> {
-            if (outcome == PaymentOutcome.ACCEPTED) {
-                log.info("Payment accepted for LB Coins purchase for User [{}]. Updating balance.", user.id());
-                userService.setLbCoinsBalance(user, userService.getLbCoinsBalance(user) + amount);
-            } else {
-                log.warn("Payment not accepted for LB Coins purchase for User [{}]. Outcome: [{}]", user.id(), outcome);
+                return;
             }
 
-            onOutcome.accept(outcome);
+            double totalLbCoinsPurchased = LBCoinsConverter.convertBRLToLBCoins(payment.amountPurchased());
+
+            log.info("Payment accepted for LB Coins purchase for User [{}]. Updating balance. ", user.id());
+            log.info("Total LB Coins purchased: {}. Total BRL purchased: {}", totalLbCoinsPurchased, payment.amountPurchased());
+
+            userService.setLbCoinsBalance(user, userService.getLbCoinsBalance(user) + totalLbCoinsPurchased);
+
+            onOutcome.accept(payment);
         });
 
         return paymentLink;
@@ -115,6 +123,12 @@ public class PaymentService {
 
     public void addPayment(Payment payment) {
         log.info("Adding new payment for User [{}]. Amount: [{}], Reason: [{}]", payment.getUserId(), payment.getAmount(), payment.getReason());
+
+        if (payment.getAmount() <= 0) {
+            log.error("Invalid payment amount for User [{}]. Amount: [{}]", payment.getUserId(), payment.getAmount());
+            throw new IllegalArgumentException("Invalid payment amount: " + payment.getAmount());
+        }
+
         payment.setStatus(PaymentStatus.PENDING);
         paymentRepository.save(payment);
         log.info("Payment added successfully for User [{}].", payment.getUserId());

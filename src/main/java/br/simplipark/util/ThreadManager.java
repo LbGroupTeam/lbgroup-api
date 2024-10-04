@@ -1,14 +1,20 @@
 package br.simplipark.util;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+@Slf4j
 public class ThreadManager {
+    private final static ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+
     private ThreadManager() {
     }
 
-    public static void schedulePeriodicTask(Runnable task, long period, TimeUnit timeUnit) {
+    public static ScheduledFuture<?> schedulePeriodicTask(Runnable task, long period, TimeUnit timeUnit) {
         if (task == null) {
             throw new IllegalArgumentException("Task cannot be null");
         }
@@ -17,21 +23,17 @@ public class ThreadManager {
             throw new IllegalArgumentException("Period must be greater than 0");
         }
 
-        var executor = Executors.newSingleThreadScheduledExecutor();
+        task = wrapRunnableWithTryCatch(task);
 
-        task = wrapRunnableWithTryCatch(task, executor);
-
-        executor.scheduleAtFixedRate(task, period, period, timeUnit);
+        return executor.scheduleAtFixedRate(task, period, period, timeUnit);
     }
 
-    private static Runnable wrapRunnableWithTryCatch(Runnable task, ScheduledExecutorService executor) {
+    private static Runnable wrapRunnableWithTryCatch(Runnable task) {
         return () -> {
             try {
                 task.run();
             } catch (Exception e) {
-                e.printStackTrace();
-
-                executor.close();
+                log.error("An error occurred while executing the task", e);
             }
         };
     }
