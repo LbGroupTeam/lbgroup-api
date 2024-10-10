@@ -1,0 +1,166 @@
+{
+  "ChargePointList": [
+    {
+      "Identity": "EM-A0000001",
+      "Address": "localhost:9220",
+      "Connection": {
+        "Socket": 11,
+        "IP": "127.0.0.1",
+        "Port": 35078
+      }
+    },
+    {
+      "Identity": "CP-A0000002",
+      "Address": "localhost:9220",
+      "Connection": {
+        "Socket": 12,
+        "IP": "127.0.0.1",
+        "Port": 35092
+      }
+    },
+    {
+      "Identity": "CP-A0000001",
+      "Address": "localhost:9220",
+      "Connection": {
+        "Socket": 13,
+        "IP": "127.0.0.1",
+        "Port": 35106
+      }
+    },
+    {
+      "Identity": "EM-A0000006",
+      "Address": "localhost:9220",
+      "Connection": {
+        "Socket": 14,
+        "IP": "127.0.0.1",
+        "Port": 35108
+      }
+    },
+    {
+      "Identity": "EM-A0000002",
+      "Address": "localhost:9220",
+      "Connection": {
+        "Socket": 15,
+        "IP": "127.0.0.1",
+        "Port": 35116
+      }
+    },
+    {
+      "Identity": "EM-A0000008",
+      "Address": "localhost:9220",
+      "Connection": {
+        "Socket": 16,
+        "IP": "127.0.0.1",
+        "Port": 35124
+      }
+    },
+    {
+      "Identity": "EM-A0000007",
+      "Address": "localhost:9220",
+      "Connection": {
+        "Socket": 17,
+        "IP": "127.0.0.1",
+        "Port": 35126
+      }
+    },
+    {
+      "Identity": "EM-A0000005",
+      "Address": "localhost:9220",
+      "Connection": {
+        "Socket": 18,
+        "IP": "127.0.0.1",
+        "Port": 35130
+      }
+    },
+    {
+      "Identity": "evowatt",
+      "Address": "54.81.97.51:9220",
+      "Connection": {
+        "Socket": 25,
+        "IP": "121.236.144.10",
+        "Port": 39114
+      }
+    },
+    {
+      "Identity": "IguatemiE",
+      "Address": "54.81.97.51:9220",
+      "Connection": {
+        "Socket": 57,
+        "IP": "187.57.30.113",
+        "Port": 52380
+      }
+    },
+    {
+      "Identity": "IguatemiL",
+      "Address": "54.81.97.51:9220",
+      "Connection": {
+        "Socket": 62,
+        "IP": "187.57.30.113",
+        "Port": 63439
+      }
+    },
+    {
+      "Identity": "IguatemiF",
+      "Address": "54.81.97.51:9220",
+      "Connection": {
+        "Socket": 58,
+        "IP": "187.57.30.113",
+        "Port": 52107
+      }
+    },
+    {
+      "Identity": "IguatemiLeft",
+      "Address": "54.81.97.51:9220",
+      "Connection": {
+        "Socket": 74,
+        "IP": "187.57.30.113",
+        "Port": 54911
+      }
+    },
+    {
+      "Identity": "IguatemiABC",
+      "Address": "54.81.97.51:9220",
+      "Connection": {
+        "Socket": 77,
+        "IP": "187.57.30.113",
+        "Port": 61325
+      }
+    },
+    {
+      "Identity": "20240001",
+      "Address": "54.81.97.51:9220",
+      "Connection": {
+        "Socket": 65,
+        "IP": "177.56.69.45",
+        "Port": 63134
+      }
+    },
+    {
+      "Identity": "20240003",
+      "Address": "54.81.97.51:9220",
+      "Connection": {
+        "Socket": 83,
+        "IP": "177.56.69.45",
+        "Port": 59537
+      }
+    },
+    {
+      "Identity": "IguatemiD",
+      "Address": "54.81.97.51:9220",
+      "Connection": {
+        "Socket": 82,
+        "IP": "187.75.111.118",
+        "Port": 60360
+      }
+    },
+    {
+      "Identity": "20240004",
+      "Address": "54.81.97.51:9220",
+      "Connection": {
+        "Socket": 84,
+        "IP": "177.56.69.45",
+        "Port": 62118
+      }
+    }
+  ]
+}

@@ -68,8 +68,7 @@ public class UserChargerService {
 
         var chargingDataId = userCurrentChargingDataIds.get(user);
         if (chargingDataId == null) {
-            log.warn("User [{}] is not charging. Cannot stop the session.", user.id());
-            throw new IllegalStateException("User is not charging");
+            throw new IllegalStateException("User " + user.id() + " is not charging. Cannot stop the session.");
         }
 
         var chargerId = chargingDataRelationsService.findChargerIdByChargingDataId(chargingDataId);
@@ -85,6 +84,10 @@ public class UserChargerService {
         log.info("Handling charge stop for User [{}] with ChargingData ID [{}].", user.id(), chargingDataWithUpdatedMeasurements.getId());
 
         var chargingDataId = userCurrentChargingDataIds.get(user);
+        if (chargingDataId == null) {
+            throw new IllegalStateException("Charging data ID not found for User: " + user.id());
+        }
+
         var chargingData = chargingDataRelationsService.updateChargingDataWithNewMeasurements(chargingDataId, chargingDataWithUpdatedMeasurements);
 
         log.info("Charging data updated for User [{}]. Removing from active sessions.", user.id());

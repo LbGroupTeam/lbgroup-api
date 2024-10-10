@@ -1,6 +1,5 @@
 package br.simplipark.evcs.isolated;
 
-import br.simplipark.evcs.OCPPServer;
 import br.simplipark.evcs.chargingdata.ChargingData;
 import br.simplipark.evcs.chargingdata.ChargingDataRelationsService;
 import br.simplipark.evcs.isolated.chargingdata.OCPPTransactionChargingDataRelation;
@@ -27,30 +26,28 @@ import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
-public class OCPPServerImpl implements OCPPServer {
+public class OCPPServer {
 
     private final String baseUrl;
-
-    private static final String CENTRAL_SYSTEM_URL = "/CentralSystem";
-    private static final String CHARGE_POINT_URL = "/ChargePoint";
+    private final long chargerStoppedCheckIntervalInSeconds;
 
     private final Map<Charger, Runnable> callbacks = new HashMap<>();
 
     private final ChargingDataRelationsService chargingDataRelationsService;
     private final OCPPTransactionChargingDataRelationRepository ocppTransactionChargingDataRelationRepository;
 
-    public OCPPServerImpl(@Value("${ocpp.base_url}") String baseUrl, ChargingDataRelationsService chargingDataRelationsService, OCPPTransactionChargingDataRelationRepository ocppTransactionChargingDataRelationRepository) {
+    public OCPPServer(@Value("${ocpp.base_url}") String baseUrl, @Value("${ocpp.fetch_interval_in_seconds:60}") long chargerStoppedCheckIntervalInSeconds, ChargingDataRelationsService chargingDataRelationsService, OCPPTransactionChargingDataRelationRepository ocppTransactionChargingDataRelationRepository) {
         this.baseUrl = baseUrl;
+        this.chargerStoppedCheckIntervalInSeconds = chargerStoppedCheckIntervalInSeconds;
 
         this.chargingDataRelationsService = chargingDataRelationsService;
         this.ocppTransactionChargingDataRelationRepository = ocppTransactionChargingDataRelationRepository;
     }
 
-    @Override
     public List<Charger> getChargers() {
         log.info("Fetching list of chargers from OCPP server...");
 
-        var request = HttpRequest.newBuilder(URI.create(baseUrl + CENTRAL_SYSTEM_URL + "/ChargePointList"))
+        var request = HttpRequest.newBuilder(URI.create(baseUrl + OCPPServerEndpoints.CHARGEPOINT_LIST.buildUrl()))
                 .GET()
                 .build();
 
@@ -75,21 +72,20 @@ public class OCPPServerImpl implements OCPPServer {
             }
 
             log.info("Successfully retrieved {} chargers.", chargers.size());
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("Failed to retrieve chargers", e);
         }
 
         return chargers;
     }
 
-    @Override
     public boolean startCharging(Charger charger) {
         try {
             var chargerIdAndTagId = parseIdAndTagIdFromCharger(charger);
             var chargerId = chargerIdAndTagId[0];
             var idTag = chargerIdAndTagId[1];
 
-            var request = HttpRequest.newBuilder(URI.create(baseUrl + CHARGE_POINT_URL + "/" + chargerId + "/RemoteStartTransaction"))
+            var request = HttpRequest.newBuilder(URI.create(baseUrl + OCPPServerEndpoints.START_CHARGING.buildUrl(chargerId)))
                     .POST(HttpRequest.BodyPublishers.ofString("connectorId=1&idTag=" + idTag))
                     .header("Content-Type", MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                     .build();
@@ -106,15 +102,22 @@ public class OCPPServerImpl implements OCPPServer {
         }
     }
 
-    @Override
     public boolean stopCharging(Charger charger) {
         try {
             log.info("Stop charging process for charger: {}", charger);
 
+            if (hasChargerStopped(charger)) {
+                log.info("Charger {} has already stopped charging", charger);
+
+                callbacks.remove(charger);
+
+                return true;
+            }
+
             var chargerId = parseChargerId(charger);
             var lastTransactionIdOfCharger = fetchLastTransactionData(chargerId).transactionId();
 
-            var request = HttpRequest.newBuilder(URI.create(baseUrl + CHARGE_POINT_URL + "/" + chargerId + "/RemoteStopTransaction"))
+            var request = HttpRequest.newBuilder(URI.create(baseUrl + OCPPServerEndpoints.STOP_CHARGING.buildUrl(chargerId)))
                     .POST(HttpRequest.BodyPublishers.ofString("transactionId=" + lastTransactionIdOfCharger))
                     .header("Content-Type", MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                     .build();
@@ -125,6 +128,13 @@ public class OCPPServerImpl implements OCPPServer {
 
             if (hasStoppedSuccessfully) {
                 callbacks.remove(charger);
+
+                try {
+                    Thread.sleep(5000); // Wait for the transaction to be registered in the central system
+                } catch (InterruptedException e) {
+                    log.error("Thread interrupted while stopping charger", e);
+                    Thread.currentThread().interrupt();
+                }
             }
 
             return hasStoppedSuccessfully;
@@ -134,7 +144,6 @@ public class OCPPServerImpl implements OCPPServer {
         }
     }
 
-    @Override
     public void onStopChargingAutomatically(Charger charger, Runnable callback) {
         log.info("Setting up callback for automatic charging stop for charger: {}", charger);
 
@@ -143,7 +152,6 @@ public class OCPPServerImpl implements OCPPServer {
         initializeChargingListener();
     }
 
-    @Override
     public ChargingData getChargingData(Charger charger) {
         log.info("Fetching charging data for charger: {}", charger);
 
@@ -160,14 +168,7 @@ public class OCPPServerImpl implements OCPPServer {
     private TransactionData fetchLastTransactionData(String chargerId) {
         log.info("Fetching last transaction data for charger: {}", chargerId);
 
-        try {
-            Thread.sleep(5000); // Wait for the transaction to be registered in the central system
-        } catch (InterruptedException e) {
-            log.error("Thread interrupted while fetching last transaction data", e);
-            Thread.currentThread().interrupt();
-        }
-
-        var request = HttpRequest.newBuilder(URI.create(baseUrl + CENTRAL_SYSTEM_URL + "/TransactionList"))
+        var request = HttpRequest.newBuilder(URI.create(baseUrl + OCPPServerEndpoints.TRANSACTION_LIST.buildUrl()))
                 .POST(HttpRequest.BodyPublishers.ofString("identity=" + chargerId))
                 .header("Content-Type", MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .build();
@@ -188,8 +189,7 @@ public class OCPPServerImpl implements OCPPServer {
 
             return TransactionData.fromJson(lastTransaction);
         } catch (IOException e) {
-            log.error("Failed to fetch last transaction data", e);
-            throw new RuntimeException(e);
+            throw new RuntimeException("Failed to fetch last transaction data", e);
         }
     }
 
@@ -242,7 +242,7 @@ public class OCPPServerImpl implements OCPPServer {
             log.info("Finished stopped chargers check");
         };
 
-        ThreadManager.schedulePeriodicTask(task, 60, TimeUnit.SECONDS);
+        ThreadManager.schedulePeriodicTask(task, chargerStoppedCheckIntervalInSeconds, TimeUnit.SECONDS);
     }
 
     private boolean hasChargerStopped(Charger charger) {
@@ -256,6 +256,8 @@ public class OCPPServerImpl implements OCPPServer {
             log.error("Failed to fetch last transaction data for charger: {}", charger, e);
             return false;
         }
+
+        log.info("Finished checking if charger {} has stopped", charger);
 
         return lastTransaction.stopValue() != 0;
     }
@@ -288,6 +290,14 @@ public class OCPPServerImpl implements OCPPServer {
     }
 
     private String[] parseIdAndTagIdFromCharger(Charger charger) {
-        return OCPPCharger.parseOCPPIdentity(charger).split("/");
+        String ocppIdentity = OCPPCharger.parseOCPPIdentity(charger);
+        if (ocppIdentity == null) {
+            String errorMessage = "Charger doesn't have a valid OCPP identity: " + charger + ". Charger metadata: " + charger.metadata();
+
+            log.error(errorMessage);
+            throw new IllegalStateException(errorMessage);
+        }
+
+        return ocppIdentity.split("/");
     }
 }

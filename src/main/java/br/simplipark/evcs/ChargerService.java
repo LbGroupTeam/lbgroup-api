@@ -4,6 +4,7 @@ import br.simplipark.evcs.chargingdata.ChargingData;
 import br.simplipark.evcs.chargingdata.ChargingDataRelationsService;
 import br.simplipark.evcs.isolated.Chargepoint;
 import br.simplipark.evcs.isolated.ChargepointRepository;
+import br.simplipark.evcs.isolated.OCPPServer;
 import br.simplipark.evcs.model.Charger;
 import br.simplipark.evcs.model.OperationMode;
 import lombok.extern.slf4j.Slf4j;

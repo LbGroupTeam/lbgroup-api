@@ -4,6 +4,7 @@ import br.simplipark.evcs.chargingdata.ChargingData;
 import br.simplipark.evcs.chargingdata.ChargingDataRelationsService;
 import br.simplipark.evcs.isolated.Chargepoint;
 import br.simplipark.evcs.isolated.ChargepointRepository;
+import br.simplipark.evcs.isolated.OCPPServer;
 import br.simplipark.evcs.model.Charger;
 import br.simplipark.evcs.model.OperationMode;
 import org.junit.jupiter.api.BeforeEach;
@@ -146,7 +147,6 @@ class ChargerServiceTest {
     void testStopCharging_ManualMode_NotCharging() {
         setupChargerOperationMode(OperationMode.MANUAL);
 
-        // Simulate that charger is not charging yet, so stopCharging should return null
         assertThrows(IllegalStateException.class, () -> chargerService.stopCharging(charger));
         verify(ocppServer, never()).stopCharging(any());  // stopCharging should not be called on the server
     }

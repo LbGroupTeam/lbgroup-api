@@ -55,7 +55,7 @@ class UserChargerServiceTest {
     }
 
     @Test
-    void startCharging_Successful() {
+    void startChargingSuccessfully_onStopChargingAutomaticallyExecutedOnce() {
         ChargingData chargingDataWithId = chargingDataWithId();
 
         when(chargerService.startCharging(charger)).thenReturn(chargingData);
@@ -64,18 +64,17 @@ class UserChargerServiceTest {
         when(chargingDataRelationsService.updateChargingDataWithNewMeasurements(anyLong(), any())).thenReturn(chargingData);
         when(pricingRecordRepository.findByTypeClientPricesAndOwnerPrices(user.type(), charger.owner())).thenReturn(pricingRecord);
 
-        // Spy on the Runnable to verify it is called
         Runnable onStopChargingAutomatically = mock(Runnable.class);
 
         doAnswer(invocation -> {
-            // Extract the callback (Runnable) from the arguments
             Consumer<ChargingData> callback = invocation.getArgument(1);
 
-            // Simulate triggering the callback (i.e., stopping the charging automatically)
-            callback.accept(chargingDataWithId());
+            // Simulate the callback being triggered twice
+            callback.accept(chargingDataWithId);
+            assertThrows(IllegalStateException.class, () -> callback.accept(chargingDataWithId));
 
             return null;
-        }).when(chargerService).onStopChargingAutomatically(eq(charger), any(Consumer.class));
+        }).when(chargerService).onStopChargingAutomatically(eq(charger), any());
 
         boolean result = userChargerService.startCharging(user, charger, onStopChargingAutomatically);
 
@@ -84,8 +83,8 @@ class UserChargerServiceTest {
         verify(chargingDataRelationsService).saveChargingData(chargingData);
         verify(chargingDataRelationsService).createRelationBetweenUserAndChargingData(user, chargingDataWithId);
 
-        // Verify that the onStopChargingAutomatically Runnable is run
-        verify(onStopChargingAutomatically).run();
+        // Verify that the onStopChargingAutomatically Runnable is run once
+        verify(onStopChargingAutomatically, times(1)).run();
     }
 
     @Test
@@ -93,9 +92,11 @@ class UserChargerServiceTest {
         when(chargerService.startCharging(charger)).thenReturn(chargingData);
         when(chargingDataRelationsService.saveChargingData(any())).thenReturn(chargingDataWithId());
 
-        userChargerService.startCharging(user, charger, () -> {});
+        userChargerService.startCharging(user, charger, () -> {
+        });
 
-        assertThrows(IllegalStateException.class, () -> userChargerService.startCharging(user, charger, () -> {}));
+        assertThrows(IllegalStateException.class, () -> userChargerService.startCharging(user, charger, () -> {
+        }));
         verify(chargerService, times(1)).startCharging(charger);
     }
 
@@ -103,7 +104,8 @@ class UserChargerServiceTest {
     void startCharging_FailedToStartCharging() {
         when(chargerService.startCharging(charger)).thenReturn(null);
 
-        boolean result = userChargerService.startCharging(user, charger, () -> {});
+        boolean result = userChargerService.startCharging(user, charger, () -> {
+        });
 
         assertFalse(result);
         verify(chargerService).startCharging(charger);
@@ -127,7 +129,8 @@ class UserChargerServiceTest {
         when(chargingDataRelationsService.updateChargingDataWithNewMeasurements(anyLong(), any())).thenReturn(chargingData);
         when(pricingRecordRepository.findByTypeClientPricesAndOwnerPrices(user.type(), charger.owner())).thenReturn(pricingRecord);
 
-        boolean startResult = userChargerService.startCharging(user, charger, () -> {});
+        boolean startResult = userChargerService.startCharging(user, charger, () -> {
+        });
         assertTrue(startResult);
 
         userChargerService.stopCharging(user);

@@ -1,0 +1,6 @@
+{
+  "error": {
+    "code": 400,
+    "message": "Not found Charge Point by Identity: 20240003"
+  }
+}
