@@ -4,6 +4,7 @@ import br.simplipark.chatbot.ChatbotMessage;
 import br.simplipark.chatbot.ChatbotUser;
 import br.simplipark.chatbot.ConversationPathManager;
 import br.simplipark.chatbot.messagedispatcher.QueueMessageDispatcher;
+import br.simplipark.chatbot.nodes.charge.ReportingFlow;
 import br.simplipark.chatbot.nodes.charge.vehicle.ChargeVehicleFlow;
 import br.simplipark.chatbot.nodes.lbcoin.LbCoinsPurchaseFlow;
 import br.simplipark.chatbot.nodes.payment.PaymentFlow;
@@ -11,6 +12,8 @@ import br.simplipark.user.UserService;
 import br.simplipark.util.Util;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import static br.simplipark.chatbot.nodes.MainConversationStage.*;
 
 @Slf4j
 @Service
@@ -22,20 +25,24 @@ public class MainMenuNode {
     private final LbCoinsPurchaseFlow lbCoinsPurchaseFlow;
     private final ChargeVehicleFlow chargingFlow;
     private final PaymentFlow paymentFlow;
+    private final ReportingFlow chargeHistory;
+
 
     private final UserService userService;
 
     private final static String MENU_OPTIONS = """
                 1 - Iniciar carga
                 2 - Comprar LB Coins
+                3 - Ver histórico de cargas desse mês
                 """;
 
-    public MainMenuNode(QueueMessageDispatcher queueMessageDispatcher, ConversationPathManager conversationPathManager, LbCoinsPurchaseFlow lbCoinsPurchaseFlow, ChargeVehicleFlow chargingFlow, PaymentFlow paymentFlow, UserService userService) {
+    public MainMenuNode(QueueMessageDispatcher queueMessageDispatcher, ConversationPathManager conversationPathManager, LbCoinsPurchaseFlow lbCoinsPurchaseFlow, ChargeVehicleFlow chargingFlow, PaymentFlow paymentFlow, ReportingFlow chargeHistory, UserService userService) {
         this.queueMessageDispatcher = queueMessageDispatcher;
         this.conversationPathManager = conversationPathManager;
         this.lbCoinsPurchaseFlow = lbCoinsPurchaseFlow;
         this.chargingFlow = chargingFlow;
         this.paymentFlow = paymentFlow;
+        this.chargeHistory = chargeHistory;
         this.userService = userService;
     }
 
@@ -113,7 +120,7 @@ public class MainMenuNode {
             queueMessageDispatcher.queueMessage(chatbotUser,
                     "O que você gostaria de fazer?\n\n" +
                             MENU_OPTIONS + "\n" +
-                            "Caso queria voltar para o menu principal, digite 'menu' a qualquer momento.");
+                            "Caso queria voltar para este menu principal, digite 'menu' a qualquer momento.");
 
             return;
         }
@@ -129,8 +136,9 @@ public class MainMenuNode {
         int option = Integer.parseInt(chatbotMessage.body());
 
         MainConversationStage selectedStage = switch (option) {
-            case 1 -> MainConversationStage.CHARGE_VEHICLE;
-            case 2 -> MainConversationStage.LB_COINS_PURCHASE;
+            case 1 -> CHARGE_VEHICLE;
+            case 2 -> LB_COINS_PURCHASE;
+            case 3 -> CHARGE_HISTORY;
             default -> null;
         };
 
@@ -148,7 +156,7 @@ public class MainMenuNode {
             case LB_COINS_PURCHASE -> lbCoinsPurchaseFlow.handleMessage(chatbotUser, chatbotMessage);
             case PAYMENT -> paymentFlow.handleMessage(chatbotUser, chatbotMessage);
             case CHARGE_VEHICLE -> chargingFlow.handleMessage(chatbotUser, chatbotMessage);
+            case CHARGE_HISTORY -> chargeHistory.handleMessage(chatbotUser, chatbotMessage);
         }
     }
-
 }

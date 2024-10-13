@@ -1,0 +1,191 @@
+{
+  "uuid": "c077f23a-2a83-4d9c-a7ba-5edd23a17ecc",
+  "lastMigration": 32,
+  "name": "Ocpp mockoon mock",
+  "endpointPrefix": "",
+  "latency": 0,
+  "port": 3001,
+  "hostname": "",
+  "folders": [],
+  "routes": [
+    {
+      "uuid": "f027710c-7a25-4038-909c-b70f2ffcd601",
+      "type": "http",
+      "documentation": "",
+      "method": "post",
+      "endpoint": "CentralSystem/TransactionList",
+      "responses": [
+        {
+          "uuid": "767166c3-1dac-4a62-87c7-f2360c947e15",
+          "body": "{\n    \"TransactionList\": [\n        {\n            \"TransactionId\": 197,\n            \"Identity\": \"20240004\",\n            \"ConnectorId\": 1,\n            \"IdTag\": \"187.180.189.21\",\n            \"StartDate/Time\": \"2024-10-01 15:34:08\",\n            \"StartValue\": 0,\n            \"StopDate/Time\": \"2024-10-08 19:02:15\",\n            \"StopValue\": 27030\n        },\n        {\n            \"TransactionId\": 214,\n            \"Identity\": \"20240004\",\n            \"ConnectorId\": 1,\n            \"IdTag\": \"187.180.189.21\",\n            \"StartDate/Time\": \"2024-10-08 15:07:18\",\n            \"StartValue\": 0,\n            \"StopDate/Time\": \"2024-10-08 19:02:15\",\n            \"StopValue\": 27030\n        },\n        {\n            \"TransactionId\": 217,\n            \"Identity\": \"20240004\",\n            \"ConnectorId\": 1,\n            \"IdTag\": \"187.180.189.21\",\n            \"StartDate/Time\": \"2024-10-09 11:03:58\",\n            \"StartValue\": 27030,\n            \"StopDate/Time\": \"2024-10-09 14:44:43\",\n            \"StopValue\": 52795\n        },\n        {\n            \"TransactionId\": 234,\n            \"Identity\": \"20240004\",\n            \"ConnectorId\": 1,\n            \"IdTag\": \"179.241.36.249\",\n            \"StartDate/Time\": \"2024-10-16 15:53:19\",\n            \"StartValue\": 52795,\n            \"StopDate/Time\": \"2024-10-16 19:22:29\",\n            \"StopValue\": 65000\n        }\n    ]\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null
+    },
+    {
+      "uuid": "2b3d15cb-8c87-4f77-8656-fb0d1c4e16a0",
+      "type": "http",
+      "documentation": "",
+      "method": "get",
+      "endpoint": "CentralSystem/ChargePointList",
+      "responses": [
+        {
+          "uuid": "9ed15030-2b51-4ece-a299-fa5843d60fd3",
+          "body": "{\n    \"ChargePointList\": [\n        {\n            \"Identity\": \"EM-A0000001\",\n            \"Address\": \"localhost:9220\",\n            \"Connection\": {\n                \"Socket\": 11,\n                \"IP\": \"127.0.0.1\",\n                \"Port\": 35078\n            }\n        },\n        {\n            \"Identity\": \"CP-A0000002\",\n            \"Address\": \"localhost:9220\",\n            \"Connection\": {\n                \"Socket\": 12,\n                \"IP\": \"127.0.0.1\",\n                \"Port\": 35092\n            }\n        },\n        {\n            \"Identity\": \"CP-A0000001\",\n            \"Address\": \"localhost:9220\",\n            \"Connection\": {\n                \"Socket\": 13,\n                \"IP\": \"127.0.0.1\",\n                \"Port\": 35106\n            }\n        },\n        {\n            \"Identity\": \"EM-A0000006\",\n            \"Address\": \"localhost:9220\",\n            \"Connection\": {\n                \"Socket\": 14,\n                \"IP\": \"127.0.0.1\",\n                \"Port\": 35108\n            }\n        },\n        {\n            \"Identity\": \"EM-A0000002\",\n            \"Address\": \"localhost:9220\",\n            \"Connection\": {\n                \"Socket\": 15,\n                \"IP\": \"127.0.0.1\",\n                \"Port\": 35116\n            }\n        },\n        {\n            \"Identity\": \"EM-A0000008\",\n            \"Address\": \"localhost:9220\",\n            \"Connection\": {\n                \"Socket\": 16,\n                \"IP\": \"127.0.0.1\",\n                \"Port\": 35124\n            }\n        },\n        {\n            \"Identity\": \"EM-A0000007\",\n            \"Address\": \"localhost:9220\",\n            \"Connection\": {\n                \"Socket\": 17,\n                \"IP\": \"127.0.0.1\",\n                \"Port\": 35126\n            }\n        },\n        {\n            \"Identity\": \"EM-A0000005\",\n            \"Address\": \"localhost:9220\",\n            \"Connection\": {\n                \"Socket\": 18,\n                \"IP\": \"127.0.0.1\",\n                \"Port\": 35130\n            }\n        },\n        {\n            \"Identity\": \"evowatt\",\n            \"Address\": \"54.81.97.51:9220\",\n            \"Connection\": {\n                \"Socket\": 25,\n                \"IP\": \"121.236.144.10\",\n                \"Port\": 39114\n            }\n        },\n        {\n            \"Identity\": \"IguatemiE\",\n            \"Address\": \"54.81.97.51:9220\",\n            \"Connection\": {\n                \"Socket\": 57,\n                \"IP\": \"187.57.30.113\",\n                \"Port\": 52380\n            }\n        },\n        {\n            \"Identity\": \"IguatemiL\",\n            \"Address\": \"54.81.97.51:9220\",\n            \"Connection\": {\n                \"Socket\": 62,\n                \"IP\": \"187.57.30.113\",\n                \"Port\": 63439\n            }\n        },\n        {\n            \"Identity\": \"IguatemiF\",\n            \"Address\": \"54.81.97.51:9220\",\n            \"Connection\": {\n                \"Socket\": 58,\n                \"IP\": \"187.57.30.113\",\n                \"Port\": 52107\n            }\n        },\n        {\n            \"Identity\": \"IguatemiLeft\",\n            \"Address\": \"54.81.97.51:9220\",\n            \"Connection\": {\n                \"Socket\": 74,\n                \"IP\": \"187.57.30.113\",\n                \"Port\": 54911\n            }\n        },\n        {\n            \"Identity\": \"IguatemiABC\",\n            \"Address\": \"54.81.97.51:9220\",\n            \"Connection\": {\n                \"Socket\": 77,\n                \"IP\": \"187.57.30.113\",\n                \"Port\": 61325\n            }\n        },\n        {\n            \"Identity\": \"IguatemiD\",\n            \"Address\": \"54.81.97.51:9220\",\n            \"Connection\": {\n                \"Socket\": 82,\n                \"IP\": \"187.75.111.118\",\n                \"Port\": 60360\n            }\n        },\n        {\n            \"Identity\": \"20240001\",\n            \"Address\": \"54.81.97.51:9220\",\n            \"Connection\": {\n                \"Socket\": 106,\n                \"IP\": \"179.241.36.249\",\n                \"Port\": 56808\n            }\n        },\n        {\n            \"Identity\": \"20240003\",\n            \"Address\": \"54.81.97.51:9220\",\n            \"Connection\": {\n                \"Socket\": 110,\n                \"IP\": \"179.241.36.249\",\n                \"Port\": 54164\n            }\n        },\n        {\n            \"Identity\": \"20240004\",\n            \"Address\": \"54.81.97.51:9220\",\n            \"Connection\": {\n                \"Socket\": 109,\n                \"IP\": \"179.241.36.249\",\n                \"Port\": 63296\n            }\n        },\n        {\n            \"Identity\": \"20240002\",\n            \"Address\": \"54.81.97.51:9220\",\n            \"Connection\": {\n                \"Socket\": 108,\n                \"IP\": \"179.241.36.249\",\n                \"Port\": 57396\n            }\n        }\n    ]\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null
+    },
+    {
+      "uuid": "3c0be741-937f-4f54-8ee0-1d1079041438",
+      "type": "http",
+      "documentation": "",
+      "method": "post",
+      "endpoint": "ChargePoint/:identity/RemoteStartTransaction/",
+      "responses": [
+        {
+          "uuid": "2ddd4291-c6b0-4985-803e-bb84ec6f22d9",
+          "body": "{\n    \"status\": \"Accepted\"\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null
+    },
+    {
+      "uuid": "952ffe18-04ab-455d-a61f-20ce92854aee",
+      "type": "http",
+      "documentation": "",
+      "method": "post",
+      "endpoint": "ChargePoint/:identity/RemoteStopTransaction/",
+      "responses": [
+        {
+          "uuid": "76c77781-514b-4406-8184-70f74d92ee99",
+          "body": "{\n    \"status\": \"Accepted\"\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null
+    }
+  ],
+  "rootChildren": [
+    {
+      "type": "route",
+      "uuid": "f027710c-7a25-4038-909c-b70f2ffcd601"
+    },
+    {
+      "type": "route",
+      "uuid": "2b3d15cb-8c87-4f77-8656-fb0d1c4e16a0"
+    },
+    {
+      "type": "route",
+      "uuid": "3c0be741-937f-4f54-8ee0-1d1079041438"
+    },
+    {
+      "type": "route",
+      "uuid": "952ffe18-04ab-455d-a61f-20ce92854aee"
+    }
+  ],
+  "proxyMode": false,
+  "proxyHost": "",
+  "proxyRemovePrefix": false,
+  "tlsOptions": {
+    "enabled": false,
+    "type": "CERT",
+    "pfxPath": "",
+    "certPath": "",
+    "keyPath": "",
+    "caPath": "",
+    "passphrase": ""
+  },
+  "cors": true,
+  "headers": [
+    {
+      "key": "Content-Type",
+      "value": "application/json"
+    },
+    {
+      "key": "Access-Control-Allow-Origin",
+      "value": "*"
+    },
+    {
+      "key": "Access-Control-Allow-Methods",
+      "value": "GET,POST,PUT,PATCH,DELETE,HEAD,OPTIONS"
+    },
+    {
+      "key": "Access-Control-Allow-Headers",
+      "value": "Content-Type, Origin, Accept, Authorization, Content-Length, X-Requested-With"
+    }
+  ],
+  "proxyReqHeaders": [
+    {
+      "key": "",
+      "value": ""
+    }
+  ],
+  "proxyResHeaders": [
+    {
+      "key": "",
+      "value": ""
+    }
+  ],
+  "data": [],
+  "callbacks": []
+}

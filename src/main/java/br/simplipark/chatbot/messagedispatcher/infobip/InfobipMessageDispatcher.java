@@ -2,10 +2,9 @@ package br.simplipark.chatbot.messagedispatcher.infobip;
 
 import br.simplipark.chatbot.ChatbotMessage;
 import br.simplipark.chatbot.messagedispatcher.MessageDispatcher;
+import br.simplipark.util.HttpUtil;
 import br.simplipark.util.Util;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.AllArgsConstructor;
+import br.simplipark.util.files.MessageableFile;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,52 +26,38 @@ public class InfobipMessageDispatcher implements MessageDispatcher {
 
     private final List<Consumer<ChatbotMessage>> callbacks = new ArrayList<>();
     private final String apiKey;
-    private final String domain;
-
+    private final String baseUrl;
     private final String senderNumber;
 
-    public InfobipMessageDispatcher(@Value("${infobip.api_key}") String apiKey, @Value("${infobip.domain}") String domain, @Value("${sender.number}") String senderNumber) {
-        this.apiKey = apiKey;
-        this.domain = domain;
-        this.senderNumber = senderNumber;
+    private final String fileWebhookUrl;
 
-        log.info("InfobipMessageDispatcher created with apiKey: {}, domain: {}, senderNumber: {}", apiKey, domain, senderNumber);
+    public InfobipMessageDispatcher(@Value("${infobip.api_key}") String apiKey, @Value("${infobip.base_whatsapp_url}") String baseUrl, @Value("${infobip.file_webhook_url}") String fileWebhookUrl, @Value("${sender.number}") String senderNumber) {
+        this.apiKey = apiKey;
+        this.baseUrl = baseUrl;
+        this.senderNumber = senderNumber;
+        this.fileWebhookUrl = fileWebhookUrl;
+
+        log.info("InfobipMessageDispatcher created with baseUrl: {}, senderNumber: {}, fileWebhookUrl: {}", baseUrl, senderNumber, fileWebhookUrl);
     }
 
     @Override
     public void sendMessage(String contact, String message) {
         log.info("Sending message to {}: {}", contact, message);
 
-        MessagePayloadDTO messagePayload = new MessagePayloadDTO();
-        messagePayload.setFrom(senderNumber);
-        messagePayload.setTo(contact);
-        messagePayload.setContent(new Content(message));
+        MessagePayloadDTO messagePayload = buildMessagePayloadDTO(contact, new TextContent(message));
 
-        String jsonRequestBody;
-        try {
-            jsonRequestBody = new ObjectMapper().writeValueAsString(messagePayload);
-        } catch (JsonProcessingException e) {
-            log.error("Error processing JSON", e);
-            throw new RuntimeException(e);
-        }
+        sendHttpRequestWithPayload(Util.serialize(messagePayload), baseUrl + "/text");
+    }
 
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("https://" + domain + "/whatsapp/1/message/text"))
-                .header("Authorization", "App " + apiKey)
-                .header("Content-Type", "application/json")
-                .header("Accept", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(jsonRequestBody))
-                .build();
+    @Override
+    public void sendFile(String contact, MessageableFile file) {
+        log.info("Sending file to {}: {}", contact, file);
 
-        try {
-            log.debug("Sending HTTP request: {} with body {}", request, jsonRequestBody);
-            HttpResponse<String> response = Util.sendSimpleHttpRequest(request);
-            log.info("Response status code: {}", response.statusCode());
-            log.debug("Response body: {}", response.body());
-        } catch (IOException e) {
-            log.error("Error sending HTTP request", e);
-            throw new RuntimeException(e);
-        }
+        FileContent fileContent = new FileContent(fileWebhookUrl + file.id(), file.name());
+
+        MessagePayloadDTO messagePayload = buildMessagePayloadDTO(contact, fileContent);
+
+        sendHttpRequestWithPayload(Util.serialize(messagePayload), baseUrl + "/document");
     }
 
     @Override
@@ -85,22 +70,56 @@ public class InfobipMessageDispatcher implements MessageDispatcher {
         log.info("Received message: {}", messageDTO);
 
         for (IncomingMessageDTO.Result result : messageDTO.getResults()) {
-            if (result.getMessage() == null) {
-                log.warn("Received message with null message");
-                continue;
-            }
-
-            String body = result.getMessage().getText();
-            if (body == null) {
-                log.warn("Received message with null body");
-                continue;
-            }
+            if (isMessageInvalid(result)) continue;
 
             var chatbotMessage = new ChatbotMessage(result.getFrom(), result.getMessage().getText());
             for (Consumer<ChatbotMessage> consumer : callbacks) {
                 consumer.accept(chatbotMessage);
             }
         }
+    }
+
+    private MessagePayloadDTO buildMessagePayloadDTO(String contact, Content content) {
+        MessagePayloadDTO messagePayload = new MessagePayloadDTO();
+        messagePayload.setFrom(senderNumber);
+        messagePayload.setTo(contact);
+        messagePayload.setContent(content);
+        return messagePayload;
+    }
+
+    private void sendHttpRequestWithPayload(String jsonRequestBody, String endpoint) {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(endpoint))
+                .header("Authorization", "App " + apiKey)
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonRequestBody))
+                .build();
+
+        try {
+            log.debug("Sending HTTP request: {} with body {}", request, jsonRequestBody);
+            HttpResponse<String> response = HttpUtil.sendSimpleHttpRequest(request);
+            log.info("Response status code: {}", response.statusCode());
+            log.debug("Response body: {}", response.body());
+        } catch (IOException e) {
+            log.error("Error sending HTTP request", e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static boolean isMessageInvalid(IncomingMessageDTO.Result result) {
+        if (result.getMessage() == null) {
+            log.warn("Received message with null message");
+            return true;
+        }
+
+        String body = result.getMessage().getText();
+        if (body == null) {
+            log.warn("Received message with null body");
+            return true;
+        }
+
+        return false;
     }
 
     @Data
@@ -110,9 +129,12 @@ public class InfobipMessageDispatcher implements MessageDispatcher {
         private Content content;
     }
 
-    @Data
-    @AllArgsConstructor
-    public static class Content {
-        private String text;
+    public interface Content {
+    }
+
+    public record TextContent(String text) implements Content {
+    }
+
+    public record FileContent(String mediaUrl, String filename) implements Content {
     }
 }

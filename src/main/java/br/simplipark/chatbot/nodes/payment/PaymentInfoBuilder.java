@@ -53,8 +53,8 @@ public class PaymentInfoBuilder {
         var formattedCost = FormatingUtils.roundToTwoDecimals(payment.getAmount());
 
         return "Kwh carregados: " + formattedEnergy + "\n" +
-                "Valor total: *R$ " + formattedCost + "*\n" +
-                "Data de início: " + FormatingUtils.formatDate(chargingData.getStartedAt()) + "\n" +
-                "Data de término: " + FormatingUtils.formatDate(chargingData.getStoppedAt());
+               "Valor total: *R$ " + formattedCost + "*\n" +
+               "Data de início: " + FormatingUtils.formatDateMedium(chargingData.getStartedAt()) + "\n" +
+               "Data de término: " + FormatingUtils.formatDateMedium(chargingData.getStoppedAt());
     }
 }

@@ -12,8 +12,7 @@ public record Charger(String name, String position, Address address, String owne
         }
     }
 
-    @Override
-    public String toString() {
+    public String toHumanString() {
         return name + " - " + position;
     }
 

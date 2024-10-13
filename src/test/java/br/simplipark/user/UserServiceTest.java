@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
@@ -23,16 +25,10 @@ public class UserServiceTest {
 
     @BeforeEach
     public void setUp() {
-        IsolatedUser user1 = new IsolatedUser();
-        user1.setIdUsu(1);
-        user1.setCpfUsu(Util.parseCpfToLong("12345678909"));
-        user1.setLbCoinsUsu(10.0f);
+        IsolatedUser user1 = createSampleIsolatedUser(1, "12345678909", 10.0f);
         isolatedUserRepository.save(user1);
 
-        IsolatedUser user2 = new IsolatedUser();
-        user2.setIdUsu(2);
-        user2.setCpfUsu(Util.parseCpfToLong("98765432100"));
-        user2.setLbCoinsUsu(20.0f);
+        IsolatedUser user2 = createSampleIsolatedUser(2, "98765432100", 20.0f);
         isolatedUserRepository.save(user2);
     }
 
@@ -64,5 +60,18 @@ public class UserServiceTest {
     public void testGetLbCoinsBalance() {
         double balance = userService.getLbCoinsBalance(userService.getUserById(1L));
         assertEquals(10.0, balance);
+    }
+
+    private static IsolatedUser createSampleIsolatedUser(int idUsu, String number, float lbCoinsUsu) {
+        IsolatedUser user = new IsolatedUser();
+        user.setIdUsu(idUsu);
+        user.setCpfUsu(Util.parseCpfToLong(number));
+        user.setLbCoinsUsu(lbCoinsUsu);
+        user.setComplementoUsu("Teste");
+        user.setNumCasaUsu(0);
+        user.setNascUsu(LocalDate.now());
+        user.setSenhaUsu("");
+        user.setSalt("");
+        return user;
     }
 }

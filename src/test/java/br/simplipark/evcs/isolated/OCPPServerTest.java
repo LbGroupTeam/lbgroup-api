@@ -1,5 +1,6 @@
 package br.simplipark.evcs.isolated;
 
+import static br.simplipark.test.OCPPServerTestHelper.*;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -7,7 +8,6 @@ import br.simplipark.evcs.chargingdata.ChargingData;
 import br.simplipark.evcs.chargingdata.ChargingDataRelationsService;
 import br.simplipark.evcs.isolated.chargingdata.OCPPTransactionChargingDataRelationRepository;
 import br.simplipark.evcs.model.Charger;
-import br.simplipark.test.TestUtils;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,41 +15,23 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @SpringBootTest
+@Transactional
 @WireMockTest(extensionScanningEnabled = true)
-public class OCPPServerTest {
+class OCPPServerTest {
 
-    private static final String identity = "2024004";
-    private static final String idTag = "192.168.0.1";
+    private static final String IDENTITY = "2024004";
+    private static final String ID_TAG = "192.168.0.1";
 
-    private static final String acceptedJsonResponse = "{\"status\": \"Accepted\"}";
-    private static final String rejectedJsonResponse = "{\"status\": \"Rejected\"}";
-
-    private static final long chargerStoppedCheckIntervalInSeconds = 1;
-    private static final long secondsToWaitForCallbackExecution = chargerStoppedCheckIntervalInSeconds * 2 + 1;
-
-    private static final String chargepointListJsonBody;
-    private static final String stillChargingTransactionListJsonBody;
-    private static final String stoppedChargingTransactionListJsonBody;
-    private static final String chargepointNotFoundJsonBody;
-
-    static {
-        try {
-            chargepointListJsonBody = TestUtils.readFileFromResources("ocpp/chargepoint_list.json");
-            stillChargingTransactionListJsonBody = TestUtils.readFileFromResources("ocpp/transaction_list_still_charging.json");
-            stoppedChargingTransactionListJsonBody = TestUtils.readFileFromResources("ocpp/transaction_list_stopped_charging.json");
-            chargepointNotFoundJsonBody = TestUtils.readFileFromResources("ocpp/chargepoint_not_found.json");
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
+    private static final long CHARGER_STOPPED_CHECK_INTERVAL = 50;
+    private static final long TIME_TO_WAIT_FOR_CALLBACK_EXECUTION = CHARGER_STOPPED_CHECK_INTERVAL * 2 + 50;
+    private static final long TIME_TO_WAIT_WHEN_STOPPING_CHARGE = 0;
 
     private OCPPServer ocppServer;
 
@@ -61,14 +43,14 @@ public class OCPPServerTest {
 
     @BeforeEach
     void setup(WireMockRuntimeInfo runtimeInfo) {
-        ocppServer = new OCPPServer(runtimeInfo.getHttpBaseUrl(), chargerStoppedCheckIntervalInSeconds, chargingDataRelationsService, ocppTransactionChargingDataRelationRepository);
+        ocppServer = new OCPPServer(runtimeInfo.getHttpBaseUrl(), CHARGER_STOPPED_CHECK_INTERVAL, TIME_TO_WAIT_WHEN_STOPPING_CHARGE, chargingDataRelationsService, ocppTransactionChargingDataRelationRepository);
     }
 
     @Nested
     class ChargersList {
         @Test
         void shouldReturnChargersList() {
-            stubCentralSystemChargepointListRequest(chargepointListJsonBody);
+            stubCentralSystemChargepointListRequest(CHARGEPOINT_LIST_JSON_BODY);
 
             List<Charger> chargers = ocppServer.getChargers();
 
@@ -108,7 +90,7 @@ public class OCPPServerTest {
     class StartCharging {
         @Test
         void shouldStartChargingSuccessfully() {
-            stubChargepointRequest(OCPPServerEndpoints.START_CHARGING, acceptedJsonResponse);
+            stubChargepointRequest(OCPPServerEndpoints.START_CHARGING, ACCEPTED_JSON_RESPONSE);
 
             Charger charger = createSampleCharger();
 
@@ -121,7 +103,7 @@ public class OCPPServerTest {
 
         @Test
         void shouldHandleFailedStartCharging() {
-            stubChargepointRequest(OCPPServerEndpoints.START_CHARGING, rejectedJsonResponse);
+            stubChargepointRequest(OCPPServerEndpoints.START_CHARGING, REJECTED_JSON_RESPONSE);
 
             Charger charger = createSampleCharger();
 
@@ -134,7 +116,7 @@ public class OCPPServerTest {
 
         @Test
         void shouldHandleInternalServerErrorOnStartCharging() {
-            stubInternalServerErrorRequest(OCPPServerEndpoints.START_CHARGING, identity);
+            stubInternalServerErrorRequest(OCPPServerEndpoints.START_CHARGING, IDENTITY);
 
             Charger charger = createSampleCharger();
 
@@ -147,7 +129,7 @@ public class OCPPServerTest {
 
         @Test
         void shouldHandleIdentityNotFoundOnStartCharging() {
-            stubChargepointRequest(OCPPServerEndpoints.START_CHARGING, chargepointNotFoundJsonBody);
+            stubChargepointRequest(OCPPServerEndpoints.START_CHARGING, CHARGEPOINT_NOT_FOUND_JSON_BODY);
 
             Charger charger = createSampleCharger();
 
@@ -172,8 +154,8 @@ public class OCPPServerTest {
     class StopCharging {
         @Test
         void shouldStopChargingSuccessfully() {
-            stubCentralSystemTransactionListRequest(stillChargingTransactionListJsonBody);
-            stubChargepointRequest(OCPPServerEndpoints.STOP_CHARGING, acceptedJsonResponse);
+            stubCentralSystemTransactionListRequest(STILL_CHARGING_TRANSACTION_LIST_JSON_BODY);
+            stubChargepointRequest(OCPPServerEndpoints.STOP_CHARGING, ACCEPTED_JSON_RESPONSE);
 
             Charger charger = createSampleCharger();
 
@@ -186,7 +168,7 @@ public class OCPPServerTest {
 
         @Test
         void shouldReturnTrueIfAttemptingToStopChargerThatsAlreadyStopped() {
-            stubCentralSystemTransactionListRequest(stoppedChargingTransactionListJsonBody);
+            stubCentralSystemTransactionListRequest(STOPPED_CHARGING_TRANSACTION_LIST_JSON_BODY);
 
             Charger charger = createSampleCharger();
 
@@ -194,14 +176,14 @@ public class OCPPServerTest {
 
             assertTrue(result);
 
-            verify(0, postRequestedFor(urlEqualTo(OCPPServerEndpoints.STOP_CHARGING.buildUrl(identity)))
+            verify(0, postRequestedFor(urlEqualTo(OCPPServerEndpoints.STOP_CHARGING.buildUrl(IDENTITY)))
                     .withRequestBody(containing("transactionId=")));
         }
 
         @Test
         void shouldHandleFailedStopCharging() {
-            stubCentralSystemTransactionListRequest(stillChargingTransactionListJsonBody);
-            stubChargepointRequest(OCPPServerEndpoints.STOP_CHARGING, rejectedJsonResponse);
+            stubCentralSystemTransactionListRequest(STILL_CHARGING_TRANSACTION_LIST_JSON_BODY);
+            stubChargepointRequest(OCPPServerEndpoints.STOP_CHARGING, REJECTED_JSON_RESPONSE);
 
             Charger charger = createSampleCharger();
 
@@ -214,8 +196,8 @@ public class OCPPServerTest {
 
         @Test
         void shouldHandleInternalServerErrorOnStopCharging() {
-            stubCentralSystemTransactionListRequest(stillChargingTransactionListJsonBody);
-            stubInternalServerErrorRequest(OCPPServerEndpoints.STOP_CHARGING, identity);
+            stubCentralSystemTransactionListRequest(STILL_CHARGING_TRANSACTION_LIST_JSON_BODY);
+            stubInternalServerErrorRequest(OCPPServerEndpoints.STOP_CHARGING, IDENTITY);
 
             Charger charger = createSampleCharger();
 
@@ -228,8 +210,8 @@ public class OCPPServerTest {
 
         @Test
         void shouldHandleIdentityNotFoundOnStopCharging() {
-            stubCentralSystemTransactionListRequest(stillChargingTransactionListJsonBody);
-            stubChargepointRequest(OCPPServerEndpoints.STOP_CHARGING, chargepointNotFoundJsonBody);
+            stubCentralSystemTransactionListRequest(STILL_CHARGING_TRANSACTION_LIST_JSON_BODY);
+            stubChargepointRequest(OCPPServerEndpoints.STOP_CHARGING, CHARGEPOINT_NOT_FOUND_JSON_BODY);
 
             Charger charger = createSampleCharger();
 
@@ -254,7 +236,7 @@ public class OCPPServerTest {
     class AutomaticCallback {
         @Test
         void shouldTriggerStopChargingCallbackAutomaticallyButNotTwice() throws InterruptedException {
-            stubCentralSystemTransactionListRequest(stoppedChargingTransactionListJsonBody);
+            stubCentralSystemTransactionListRequest(STOPPED_CHARGING_TRANSACTION_LIST_JSON_BODY);
 
             Charger charger = createSampleCharger();
 
@@ -262,22 +244,22 @@ public class OCPPServerTest {
 
             ocppServer.onStopChargingAutomatically(charger, () -> callbackExecuted.set(true));
 
-            TimeUnit.SECONDS.sleep(secondsToWaitForCallbackExecution);
+            Thread.sleep(TIME_TO_WAIT_FOR_CALLBACK_EXECUTION);
 
 
             assertTrue(callbackExecuted.get(), "Callback should be executed once");
 
             callbackExecuted.set(false); // Reset for the next assertion.
 
-            TimeUnit.SECONDS.sleep(secondsToWaitForCallbackExecution);
+            Thread.sleep(TIME_TO_WAIT_FOR_CALLBACK_EXECUTION);
 
             assertFalse(callbackExecuted.get(), "Callback should not be executed a second time");
         }
 
         @Test
         void shouldNotTriggerCallbackAfterStoppingManually() throws InterruptedException {
-            stubCentralSystemTransactionListRequest(stillChargingTransactionListJsonBody);
-            stubChargepointRequest(OCPPServerEndpoints.STOP_CHARGING, acceptedJsonResponse);
+            stubCentralSystemTransactionListRequest(STILL_CHARGING_TRANSACTION_LIST_JSON_BODY);
+            stubChargepointRequest(OCPPServerEndpoints.STOP_CHARGING, ACCEPTED_JSON_RESPONSE);
 
             Charger charger = createSampleCharger();
 
@@ -288,17 +270,17 @@ public class OCPPServerTest {
             boolean manualStopResult = ocppServer.stopCharging(charger);
             assertTrue(manualStopResult, "Manual stop should return true");
 
-            stubCentralSystemTransactionListRequest(stoppedChargingTransactionListJsonBody);
+            stubCentralSystemTransactionListRequest(STOPPED_CHARGING_TRANSACTION_LIST_JSON_BODY);
 
-            TimeUnit.SECONDS.sleep(secondsToWaitForCallbackExecution);
+            Thread.sleep(TIME_TO_WAIT_FOR_CALLBACK_EXECUTION);
 
             assertFalse(callbackExecuted.get(), "Callback should not be executed after manual stop");
         }
 
         @Test
         void shouldTriggerCallbackAfterAttemptingToStopManuallyButFails() throws InterruptedException {
-            stubCentralSystemTransactionListRequest(stillChargingTransactionListJsonBody);
-            stubChargepointRequest(OCPPServerEndpoints.STOP_CHARGING, rejectedJsonResponse);
+            stubCentralSystemTransactionListRequest(STILL_CHARGING_TRANSACTION_LIST_JSON_BODY);
+            stubChargepointRequest(OCPPServerEndpoints.STOP_CHARGING, REJECTED_JSON_RESPONSE);
 
             Charger charger = createSampleCharger();
 
@@ -309,9 +291,9 @@ public class OCPPServerTest {
             boolean manualStopResult = ocppServer.stopCharging(charger);
             assertFalse(manualStopResult, "Manual stop should return false on failure");
 
-            stubCentralSystemTransactionListRequest(stoppedChargingTransactionListJsonBody);
+            stubCentralSystemTransactionListRequest(STOPPED_CHARGING_TRANSACTION_LIST_JSON_BODY);
 
-            TimeUnit.SECONDS.sleep(secondsToWaitForCallbackExecution);
+            Thread.sleep(TIME_TO_WAIT_FOR_CALLBACK_EXECUTION);
 
             assertTrue(callbackExecuted.get(), "Callback should be executed after manual stop fails");
         }
@@ -319,7 +301,7 @@ public class OCPPServerTest {
 
     @Test
     void shouldFetchChargingData() {
-        stubCentralSystemTransactionListRequest(stillChargingTransactionListJsonBody);
+        stubCentralSystemTransactionListRequest(STILL_CHARGING_TRANSACTION_LIST_JSON_BODY);
 
         Charger charger = createSampleCharger();
         ChargingData chargingData = ocppServer.getChargingData(charger);
@@ -331,22 +313,22 @@ public class OCPPServerTest {
         assertEquals(chargingData.getStoppedAt(), LocalDateTime.parse("1899-12-30T00:00:00"));
 
         verify(postRequestedFor(urlEqualTo(OCPPServerEndpoints.TRANSACTION_LIST.buildUrl()))
-                .withRequestBody(containing("identity=" + identity)));
+                .withRequestBody(containing("identity=" + IDENTITY)));
     }
 
     private static void verifyStartChargingRequestWasMadeCorrectly() {
-        verify(postRequestedFor(urlEqualTo(OCPPServerEndpoints.START_CHARGING.buildUrl(identity)))
+        verify(postRequestedFor(urlEqualTo(OCPPServerEndpoints.START_CHARGING.buildUrl(IDENTITY)))
                 .withRequestBody(containing("connectorId=1"))
-                .withRequestBody(containing("idTag=" + idTag)));
+                .withRequestBody(containing("idTag=" + ID_TAG)));
     }
 
     private static void verifyStopChargingRequestWasMadeCorrectly() {
-        verify(postRequestedFor(urlEqualTo(OCPPServerEndpoints.STOP_CHARGING.buildUrl(identity)))
+        verify(postRequestedFor(urlEqualTo(OCPPServerEndpoints.STOP_CHARGING.buildUrl(IDENTITY)))
                 .withRequestBody(containing("transactionId=")));
     }
 
     private void stubChargepointRequest(OCPPServerEndpoints endpoint, String body) {
-        stubRequestWithJsonBody(endpoint, body, identity);
+        stubRequestWithJsonBody(endpoint, body, IDENTITY);
     }
 
     private void stubCentralSystemChargepointListRequest(String jsonBody) {
@@ -371,7 +353,7 @@ public class OCPPServerTest {
     }
 
     private Charger createSampleCharger() {
-        OCPPCharger ocppCharger = new OCPPCharger(identity, "TEST", new Connection("", OCPPServerTest.idTag, ""));
+        OCPPCharger ocppCharger = new OCPPCharger(IDENTITY, "TEST", new Connection("", OCPPServerTest.ID_TAG, ""));
 
         return ocppCharger.toModel();
     }

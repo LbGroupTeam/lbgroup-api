@@ -28,6 +28,11 @@ public class UserService {
         return isolatedUser.toUser();
     }
 
+    public String getUserName(User user) {
+        IsolatedUser isolatedUser = isolatedUserRepository.findById(user.id()).orElseThrow();
+        return isolatedUser.getNomeUsu();
+    }
+
     public void setLbCoinsBalance(User user, double amount) {
         IsolatedUser isolatedUser = isolatedUserRepository.findById(user.id()).orElseThrow();
         isolatedUser.setLbCoinsUsu((float) amount);

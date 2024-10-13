@@ -52,4 +52,18 @@ public class IncomingMessageDTO {
             private String currency;
         }
     }
+
+    public static IncomingMessageDTO createIncomingMessageDTO(String from, String to, String text) {
+        var result = new Result();
+        result.setFrom(from);
+        result.setTo(to);
+        result.setMessage(new Result.Message("TEXT", text));
+
+        var incomingMessageDTO = new IncomingMessageDTO();
+        incomingMessageDTO.setResults(List.of(result));
+        incomingMessageDTO.setMessageCount(1);
+        incomingMessageDTO.setPendingMessageCount(0);
+
+        return incomingMessageDTO;
+    }
 }

@@ -80,7 +80,7 @@ public class PaymentFlow {
     }
 
     private void showPaymentInfo(ChatbotUser chatbotUser) {
-        var pendingPayments = paymentService.getPendingPayments(chatbotUser.user());
+        var pendingPayments = paymentService.fetchPendingPayments(chatbotUser.user());
         if (pendingPayments.isEmpty()) {
             messageDispatcher.queueMessage(chatbotUser, "Você não possui pagamentos pendentes. Você será redirecionado ao menu principal.\n\n");
 

@@ -100,7 +100,7 @@ public class ChargeVehicleFlow {
 
         chatbotUser.sessionData().setSelectedCharger(charger);
 
-        messageDispatcher.queueMessage(chatbotUser, "Você está conectado ao carregador " + charger.name() + ".\nSua carga está em andamento.\n" +
+        messageDispatcher.queueMessage(chatbotUser, "Você está conectado ao carregador " + charger.toHumanString() + ".\nSua carga está em andamento.\n" +
                 "Você será avisado assim que sua carga finalizar.\n\n" +
                 "Caso queira parar a carga manualmente, digite 'parar'.");
 
@@ -146,7 +146,7 @@ public class ChargeVehicleFlow {
         List<Charger> chargers = chargerService.getChargers();
 
         for (int i = 0; i < chargers.size(); i++) {
-            sb.append(i + 1).append(" - ").append(chargers.get(i)).append("\n\n");
+            sb.append(i + 1).append(" - ").append(chargers.get(i).toHumanString()).append("\n\n");
         }
 
         return sb.toString();

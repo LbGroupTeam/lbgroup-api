@@ -1,6 +1,8 @@
 package br.simplipark.chatbot.messagedispatcher;
 
 import br.simplipark.chatbot.ChatbotMessage;
+import br.simplipark.test.TestUtils;
+import br.simplipark.util.files.MessageableFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -21,6 +23,8 @@ class MessageHistoryDispatcherTest {
     private MessageHistoryDispatcher messageHistoryDispatcher;
 
     private String historyDirectoryPath;
+    
+    private final String userContact = "+5511934554764"; 
 
     @BeforeEach
     void setUp() {
@@ -37,7 +41,6 @@ class MessageHistoryDispatcherTest {
 
     @Test
     void testSendingAndReceivingMessage() {
-        String userContact = "+5511934554764";
         String outgoingMessage = "Test outgoing message";
         String incomingMessage = "Test incoming message";
 
@@ -48,7 +51,7 @@ class MessageHistoryDispatcherTest {
 
         mockMessageDispatcher.simulateMessageReceived(userContact, incomingMessage);
 
-        String fileContent = readTextFromFilePath(userFilePath);
+        String fileContent = TestUtils.readTextFromFilePath(userFilePath);
         assertTrue(fileContent.contains(outgoingMessage));
         assertTrue(fileContent.contains(incomingMessage));
 
@@ -59,7 +62,24 @@ class MessageHistoryDispatcherTest {
         assertTrue(lines[0].contains("Bot: " + outgoingMessage));
         assertTrue(lines[1].contains(userContact + ": " + incomingMessage));
 
-        // Parse the timestamp and check if it is in the correct format
+        assertTimestampIsCorrect(lines);
+    }
+
+    @Test
+    void testCanSendFilesSucessfully() {
+        MessageableFile file = new MessageableFile("file-id", "file.txt");
+        
+        messageHistoryDispatcher.sendFile(userContact, file);
+
+        Path userFilePath = Paths.get(historyDirectoryPath, userContact + ".txt");
+        assertTrue(Files.exists(userFilePath));
+
+        String fileContent = TestUtils.readTextFromFilePath(userFilePath);
+        assertTrue(fileContent.contains(file.name()));
+        assertTrue(fileContent.contains(file.id()));
+    }
+
+    private static void assertTimestampIsCorrect(String[] lines) {
         String[] message = lines[0].split("] ");
         String timestamp = message[0].substring(1);
 
@@ -70,21 +90,16 @@ class MessageHistoryDispatcherTest {
         }
     }
 
-    private static String readTextFromFilePath(Path userFilePath) {
-        String fileContent = null;
-        try {
-            fileContent = Files.readString(userFilePath);
-        } catch (IOException e) {
-            fail("Failed to read history file");
-        }
-        return fileContent;
-    }
-
     private static class MockMessageDispatcher implements MessageDispatcher {
         private Consumer<ChatbotMessage> messageHandler;
 
         @Override
         public void sendMessage(String contact, String message) {
+            // Do nothing, this is a mock
+        }
+
+        @Override
+        public void sendFile(String contact, MessageableFile file) {
             // Do nothing, this is a mock
         }
 

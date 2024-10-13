@@ -2,10 +2,7 @@ package br.simplipark.payment;
 
 import br.simplipark.payment.currency.LBCoinsConverter;
 import br.simplipark.payment.exceptions.UnsuficientBalanceException;
-import br.simplipark.payment.model.CompletedPayment;
-import br.simplipark.payment.model.Payment;
-import br.simplipark.payment.model.PaymentOutcome;
-import br.simplipark.payment.model.PaymentStatus;
+import br.simplipark.payment.model.*;
 import br.simplipark.user.User;
 import br.simplipark.user.UserService;
 import org.springframework.stereotype.Service;
@@ -111,17 +108,17 @@ public class PaymentService {
 
     public boolean hasPendingPayment(User user) {
         log.info("Checking for pending payments for User [{}].", user.id());
-        boolean hasPending = !getPendingPayments(user).isEmpty();
+        boolean hasPending = !fetchPendingPayments(user).isEmpty();
         log.debug("Pending payments check result for User [{}]: [{}]", user.id(), hasPending);
         return hasPending;
     }
 
-    public List<Payment> getPendingPayments(User user) {
+    public List<Payment> fetchPendingPayments(User user) {
         log.info("Fetching pending payments for User [{}].", user.id());
         return paymentRepository.findByUserIdAndStatus(user.id(), PaymentStatus.PENDING);
     }
 
-    public void addPayment(Payment payment) {
+    public Payment addPayment(Payment payment) {
         log.info("Adding new payment for User [{}]. Amount: [{}], Reason: [{}]", payment.getUserId(), payment.getAmount(), payment.getReason());
 
         if (payment.getAmount() < 0) {
@@ -130,8 +127,17 @@ public class PaymentService {
         }
 
         payment.setStatus(PaymentStatus.PENDING);
-        paymentRepository.save(payment);
+
+        payment = paymentRepository.save(payment);
         log.info("Payment added successfully for User [{}].", payment.getUserId());
+
+        return payment;
+    }
+
+    public List<Payment> fetchPaymentsByReasonIdIn(PaymentReason reason, List<String> reasonIds) {
+        log.debug("Fetching payments by reason ID: [{}] and reason [{}]", reasonIds, reason);
+
+        return paymentRepository.findAllByReasonAndReasonDataIn(reason, reasonIds);
     }
 
     public static double calculateTotalCost(List<Payment> payments) {

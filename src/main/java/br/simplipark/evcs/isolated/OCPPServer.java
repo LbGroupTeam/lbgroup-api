@@ -5,8 +5,8 @@ import br.simplipark.evcs.chargingdata.ChargingDataRelationsService;
 import br.simplipark.evcs.isolated.chargingdata.OCPPTransactionChargingDataRelation;
 import br.simplipark.evcs.isolated.chargingdata.OCPPTransactionChargingDataRelationRepository;
 import br.simplipark.evcs.model.Charger;
+import br.simplipark.util.HttpUtil;
 import br.simplipark.util.ThreadManager;
-import br.simplipark.util.Util;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
@@ -29,16 +29,18 @@ import java.util.concurrent.TimeUnit;
 public class OCPPServer {
 
     private final String baseUrl;
-    private final long chargerStoppedCheckIntervalInSeconds;
+    private final long chargerStoppedCheckInterval;
+    private final long timeToWaitWhenStoppingCharge;
 
     private final Map<Charger, Runnable> callbacks = new HashMap<>();
 
     private final ChargingDataRelationsService chargingDataRelationsService;
     private final OCPPTransactionChargingDataRelationRepository ocppTransactionChargingDataRelationRepository;
 
-    public OCPPServer(@Value("${ocpp.base_url}") String baseUrl, @Value("${ocpp.fetch_interval_in_seconds:60}") long chargerStoppedCheckIntervalInSeconds, ChargingDataRelationsService chargingDataRelationsService, OCPPTransactionChargingDataRelationRepository ocppTransactionChargingDataRelationRepository) {
+    public OCPPServer(@Value("${ocpp.base_url}") String baseUrl, @Value("${ocpp.fetch_interval:60000}") long chargerStoppedCheckInterval, @Value("${ocpp.time_to_wait_when_stopping_charge:3000}") long timeToWaitWhenStoppingCharge, ChargingDataRelationsService chargingDataRelationsService, OCPPTransactionChargingDataRelationRepository ocppTransactionChargingDataRelationRepository) {
         this.baseUrl = baseUrl;
-        this.chargerStoppedCheckIntervalInSeconds = chargerStoppedCheckIntervalInSeconds;
+        this.chargerStoppedCheckInterval = chargerStoppedCheckInterval;
+        this.timeToWaitWhenStoppingCharge = timeToWaitWhenStoppingCharge;
 
         this.chargingDataRelationsService = chargingDataRelationsService;
         this.ocppTransactionChargingDataRelationRepository = ocppTransactionChargingDataRelationRepository;
@@ -56,7 +58,7 @@ public class OCPPServer {
         List<Charger> chargers = new ArrayList<>();
 
         try {
-            var response = Util.sendSimpleHttpRequest(request);
+            var response = HttpUtil.sendSimpleHttpRequest(request);
 
             var body = response.body();
 
@@ -173,7 +175,7 @@ public class OCPPServer {
         log.debug("Sending request to fetch last transaction data for chargerId: {}. Request: {}", chargerId, request);
 
         try {
-            var response = Util.sendSimpleHttpRequest(request);
+            var response = HttpUtil.sendSimpleHttpRequest(request);
 
             log.debug("Transaction data response: {}", response.body());
 
@@ -191,7 +193,7 @@ public class OCPPServer {
     }
 
     private boolean parseSimpleAcceptOrRejectRequest(HttpRequest request) throws IOException {
-        var response = Util.sendSimpleHttpRequest(request);
+        var response = HttpUtil.sendSimpleHttpRequest(request);
 
         log.debug("Response for simple request: {}", response.body());
 
@@ -239,7 +241,7 @@ public class OCPPServer {
             log.info("Finished stopped chargers check");
         };
 
-        ThreadManager.schedulePeriodicTask(task, chargerStoppedCheckIntervalInSeconds, TimeUnit.SECONDS);
+        ThreadManager.schedulePeriodicTask(task, chargerStoppedCheckInterval, TimeUnit.MILLISECONDS);
     }
 
     private boolean hasChargerStopped(Charger charger) {
@@ -298,9 +300,9 @@ public class OCPPServer {
         return ocppIdentity.split("/");
     }
 
-    private static void waitForTransactionToBeRegisteredInCentralSystem() {
+    private void waitForTransactionToBeRegisteredInCentralSystem() {
         try {
-            Thread.sleep(5000); // Wait for the transaction to be registered in the central system
+            Thread.sleep(timeToWaitWhenStoppingCharge); // Wait for the transaction to be registered in the central system
         } catch (InterruptedException e) {
             log.error("Thread interrupted while stopping charger", e);
             Thread.currentThread().interrupt();

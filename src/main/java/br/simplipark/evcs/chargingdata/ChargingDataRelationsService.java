@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.List;
+
 @Slf4j
 @Service
 public class ChargingDataRelationsService {
@@ -26,7 +28,7 @@ public class ChargingDataRelationsService {
     }
 
     public ChargingData findChargingDataById(long chargingDataId) {
-        log.info("Fetching charging data with ID [{}].", chargingDataId);
+        log.debug("Fetching charging data with ID [{}].", chargingDataId);
         return chargingDataRepository.findById(chargingDataId)
                 .orElseThrow(() -> {
                     log.error("Charging data not found for ID [{}].", chargingDataId);
@@ -35,50 +37,62 @@ public class ChargingDataRelationsService {
     }
 
     public ChargingData saveChargingData(ChargingData chargingData) {
-        log.info("Saving charging data: [{}].", chargingData);
+        log.debug("Saving charging data: [{}].", chargingData);
         ChargingData savedChargingData = chargingDataRepository.save(chargingData);
-        log.info("Charging data saved successfully with ID [{}].", savedChargingData.getId());
+        log.debug("Charging data saved successfully with ID [{}].", savedChargingData.getId());
         return savedChargingData;
     }
 
     public ChargingData updateChargingDataWithNewMeasurements(long chargingDataId, ChargingData chargingDataWithUpdatedValues) {
-        log.info("Updating charging data with new measurements for ID [{}].", chargingDataId);
+        log.debug("Updating charging data with new measurements for ID [{}].", chargingDataId);
         var chargingData = findChargingDataById(chargingDataId);
 
         chargingData.setStoppedAt(chargingDataWithUpdatedValues.getStoppedAt());
         chargingData.setEnergyDeliveredInWatts(chargingDataWithUpdatedValues.getEnergyDeliveredInWatts());
 
         ChargingData updatedChargingData = chargingDataRepository.save(chargingData);
-        log.info("Charging data with ID [{}] updated successfully.", chargingDataId);
+        log.debug("Charging data with ID [{}] updated successfully.", chargingDataId);
         return updatedChargingData;
     }
 
     public void createRelationBetweenChargerAndChargingData(long chargerId, ChargingData chargingData) {
-        log.info("Creating relation between charger [{}] and charging data [{}].", chargerId, chargingData.getId());
+        log.debug("Creating relation between charger [{}] and charging data [{}].", chargerId, chargingData.getId());
         var chargepointChargingDataRelation = new ChargepointChargingDataRelation();
 
         chargepointChargingDataRelation.setChargepointId(chargerId);
         chargepointChargingDataRelation.setChargingDataId(chargingData.getId());
 
         chargepointChargingDataRelationRepository.save(chargepointChargingDataRelation);
-        log.info("Relation created between charger [{}] and charging data [{}].", chargerId, chargingData.getId());
+        log.debug("Relation created between charger [{}] and charging data [{}].", chargerId, chargingData.getId());
     }
 
     public void createRelationBetweenUserAndChargingData(User user, ChargingData chargingData) {
-        log.info("Creating relation between User [{}] and charging data [{}].", user.id(), chargingData.getId());
+        log.debug("Creating relation between User [{}] and charging data [{}].", user.id(), chargingData.getId());
         var userChargingDataRelation = new UserChargingDataRelation();
 
         userChargingDataRelation.setUserId(user.id());
         userChargingDataRelation.setChargingDataId(chargingData.getId());
 
         userChargingDataRelationRepository.save(userChargingDataRelation);
-        log.info("Relation created between User [{}] and charging data [{}].", user.id(), chargingData.getId());
+        log.debug("Relation created between User [{}] and charging data [{}].", user.id(), chargingData.getId());
     }
 
     public long findChargerIdByChargingDataId(long chargingDataId) {
-        log.info("Fetching charger ID by charging data ID [{}].", chargingDataId);
+        log.debug("Fetching charger ID by charging data ID [{}].", chargingDataId);
         var relation = chargepointChargingDataRelationRepository.findByChargingDataId(chargingDataId);
-        log.info("Charger ID [{}] found for charging data ID [{}].", relation.getChargepointId(), chargingDataId);
+        log.debug("Charger ID [{}] found for charging data ID [{}].", relation.getChargepointId(), chargingDataId);
         return relation.getChargepointId();
+    }
+
+    public List<ChargingData> findChargingDataByUserId(long userId) {
+        log.debug("Fetching charging data by user ID [{}].", userId);
+        var relations = userChargingDataRelationRepository.findAllByUserId(userId);
+
+        var chargingDataIds = relations.stream().map(UserChargingDataRelation::getChargingDataId).toList();
+
+        var chargingData = chargingDataRepository.findAllById(chargingDataIds);
+        log.debug("Found {} total charging records for user ID: {}", chargingData.size(), userId);
+
+        return chargingData;
     }
 }

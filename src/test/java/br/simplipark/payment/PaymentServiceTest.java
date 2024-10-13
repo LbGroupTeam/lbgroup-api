@@ -14,12 +14,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Transactional
 @SpringBootTest
 public class PaymentServiceTest {
 
@@ -46,7 +48,7 @@ public class PaymentServiceTest {
 	@Test
 	public void testAddingPaymentThenPayingWithCreditCard() {
 		Payment payment = createPayment(100.0);
-		paymentService.addPayment(payment);
+        payment = paymentService.addPayment(payment);
 
 		assertEquals(PaymentStatus.PENDING, paymentRepository.findById(payment.getId()).orElseThrow().getStatus());
 
@@ -69,7 +71,7 @@ public class PaymentServiceTest {
 	@Test
 	public void testAddingPaymentThenRejectingCreditCardPayment() {
 		Payment payment = createPayment(100.0);
-		paymentService.addPayment(payment);
+        payment = paymentService.addPayment(payment);
 
 		assertEquals(PaymentStatus.PENDING, paymentRepository.findById(payment.getId()).orElseThrow().getStatus());
 
@@ -92,7 +94,7 @@ public class PaymentServiceTest {
 	@Test
 	public void testAddingPaymentThenPayingWithLBCoins() throws UnsuficientBalanceException {
 		Payment payment = createPayment(LBCoinsConverter.convertLBCoinsToBRL(15.0));
-		paymentService.addPayment(payment);
+        payment = paymentService.addPayment(payment);
 
 		userService.setLbCoinsBalance(testUser, 100.0);
 
@@ -105,11 +107,12 @@ public class PaymentServiceTest {
 	@Test
 	public void testHandleLBCoinsPaymentThrowsUnsuficientBalance() {
 		Payment payment = createPayment(LBCoinsConverter.convertLBCoinsToBRL(200.0));
-		paymentService.addPayment(payment);
+        payment = paymentService.addPayment(payment);
 
 		userService.setLbCoinsBalance(testUser, 100.0);
 
-		assertThrows(UnsuficientBalanceException.class, () -> paymentService.handleLBCoinsPayment(testUser, List.of(payment)));
+        Payment finalPayment = payment;
+        assertThrows(UnsuficientBalanceException.class, () -> paymentService.handleLBCoinsPayment(testUser, List.of(finalPayment)));
 		assertEquals(PaymentStatus.PENDING, paymentRepository.findById(payment.getId()).orElseThrow().getStatus());
 	}
 
@@ -181,7 +184,6 @@ public class PaymentServiceTest {
 	private Payment createPayment(double amount) {
 		Payment payment = new Payment();
 
-		payment.setId(1L);
 		payment.setUserId(testUser.id());
 		payment.setAmount(amount);
 
