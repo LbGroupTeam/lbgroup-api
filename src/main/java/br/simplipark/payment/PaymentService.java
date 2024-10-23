@@ -124,7 +124,7 @@ public class PaymentService {
     public void addPayment(Payment payment) {
         log.info("Adding new payment for User [{}]. Amount: [{}], Reason: [{}]", payment.getUserId(), payment.getAmount(), payment.getReason());
 
-        if (payment.getAmount() <= 0) {
+        if (payment.getAmount() < 0) {
             log.error("Invalid payment amount for User [{}]. Amount: [{}]", payment.getUserId(), payment.getAmount());
             throw new IllegalArgumentException("Invalid payment amount: " + payment.getAmount());
         }

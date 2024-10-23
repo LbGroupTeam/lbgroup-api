@@ -165,8 +165,15 @@ public class PaymentServiceTest {
 	}
 
 	@Test
-	public void testAddInvalidPayment() {
+	public void testAddZeroedPayment() {
 		Payment invalidPayment = createPayment(0.0);
+
+		assertDoesNotThrow(() -> paymentService.addPayment(invalidPayment));
+	}
+
+	@Test
+	public void testAddInvalidPayment() {
+		Payment invalidPayment = createPayment(-1);
 
 		assertThrows(IllegalArgumentException.class, () -> paymentService.addPayment(invalidPayment));
 	}
