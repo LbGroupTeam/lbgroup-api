@@ -95,6 +95,8 @@ public class OCPPServer {
 
             log.info("Charging start request for charger {} was successful: {}", charger, result);
 
+            waitForTransactionToBeRegisteredInCentralSystem();
+
             return result;
         } catch (Exception e) {
             log.error("Failed to start charging for charger: {}", charger, e);
@@ -129,12 +131,7 @@ public class OCPPServer {
             if (hasStoppedSuccessfully) {
                 callbacks.remove(charger);
 
-                try {
-                    Thread.sleep(5000); // Wait for the transaction to be registered in the central system
-                } catch (InterruptedException e) {
-                    log.error("Thread interrupted while stopping charger", e);
-                    Thread.currentThread().interrupt();
-                }
+                waitForTransactionToBeRegisteredInCentralSystem();
             }
 
             return hasStoppedSuccessfully;
@@ -299,5 +296,14 @@ public class OCPPServer {
         }
 
         return ocppIdentity.split("/");
+    }
+
+    private static void waitForTransactionToBeRegisteredInCentralSystem() {
+        try {
+            Thread.sleep(5000); // Wait for the transaction to be registered in the central system
+        } catch (InterruptedException e) {
+            log.error("Thread interrupted while stopping charger", e);
+            Thread.currentThread().interrupt();
+        }
     }
 }
