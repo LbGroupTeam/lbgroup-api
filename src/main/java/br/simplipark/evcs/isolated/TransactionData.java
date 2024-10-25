@@ -7,33 +7,33 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 public record TransactionData(
-        int transactionId,
+        long transactionId,
         String identity,
         int connectorId,
         String idTag,
         LocalDateTime startDateTime,
-        int startValue,
+        long startValue,
         LocalDateTime stopDateTime,
-        int stopValue
+        long stopValue
 ) {
     public static TransactionData fromJson(JsonNode transactionJson) {
         var dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
         return new TransactionData(
-                transactionJson.get("TransactionId").asInt(),
+                transactionJson.get("TransactionId").asLong(),
                 transactionJson.get("Identity").asText(),
                 transactionJson.get("ConnectorId").asInt(),
                 transactionJson.get("IdTag").asText(),
                 LocalDateTime.parse(transactionJson.get("StartDate/Time").asText(), dateTimeFormatter),
-                transactionJson.get("StartValue").asInt(),
+                transactionJson.get("StartValue").asLong(),
                 LocalDateTime.parse(transactionJson.get("StopDate/Time").asText(), dateTimeFormatter),
-                transactionJson.get("StopValue").asInt()
+                transactionJson.get("StopValue").asLong()
         );
     }
 
     public ChargingData toChargingData() {
         return new ChargingData(
-                Math.clamp(stopValue - (long) startValue, 0, Integer.MAX_VALUE),
+                Math.clamp(stopValue - startValue, 0, Integer.MAX_VALUE),
                 startDateTime,
                 stopDateTime
         );

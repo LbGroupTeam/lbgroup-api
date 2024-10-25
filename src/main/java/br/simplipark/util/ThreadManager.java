@@ -22,18 +22,8 @@ public class ThreadManager {
             throw new IllegalArgumentException("Period must be greater than 0");
         }
 
-        task = wrapRunnableWithTryCatch(task);
+        task = Util.wrapRunnableWithTryCatch(task);
 
         return executor.scheduleAtFixedRate(task, period, period, timeUnit);
-    }
-
-    private static Runnable wrapRunnableWithTryCatch(Runnable task) {
-        return () -> {
-            try {
-                task.run();
-            } catch (Exception e) {
-                log.error("An error occurred while executing the task", e);
-            }
-        };
     }
 }

@@ -59,4 +59,14 @@ public class Util {
             throw new RuntimeException(e);
         }
     }
+
+    public static Runnable wrapRunnableWithTryCatch(Runnable task) {
+        return () -> {
+            try {
+                task.run();
+            } catch (Exception e) {
+                log.error("An error occurred while executing the task", e);
+            }
+        };
+    }
 }

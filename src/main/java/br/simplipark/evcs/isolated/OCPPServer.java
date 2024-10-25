@@ -7,6 +7,7 @@ import br.simplipark.evcs.isolated.chargingdata.OCPPTransactionChargingDataRelat
 import br.simplipark.evcs.model.Charger;
 import br.simplipark.util.HttpUtil;
 import br.simplipark.util.ThreadManager;
+import br.simplipark.util.Util;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
@@ -228,14 +229,13 @@ public class OCPPServer {
 
             for (var charger : stoppedChargers) {
                 var callback = callbacks.get(charger);
+                callbacks.remove(charger);
 
                 log.info("Executing callback for charger: {}", charger);
 
-                callback.run();
+                Util.wrapRunnableWithTryCatch(callback).run();
 
                 log.info("Executed callback for charger: {}", charger);
-
-                callbacks.remove(charger);
             }
 
             log.info("Finished stopped chargers check");

@@ -30,7 +30,7 @@ class OCPPServerTest {
     private static final String ID_TAG = "192.168.0.1";
 
     private static final long CHARGER_STOPPED_CHECK_INTERVAL = 50;
-    private static final long TIME_TO_WAIT_FOR_CALLBACK_EXECUTION = CHARGER_STOPPED_CHECK_INTERVAL * 2 + 50;
+    private static final long TIME_TO_WAIT_FOR_CALLBACK_EXECUTION = CHARGER_STOPPED_CHECK_INTERVAL + 25;
     private static final long TIME_TO_WAIT_WHEN_STOPPING_CHARGE = 0;
 
     private OCPPServer ocppServer;
@@ -257,6 +257,35 @@ class OCPPServerTest {
         }
 
         @Test
+        void shouldTriggerStopChargingCallbackAutomaticallyButNotTwiceOnExceptionAndShouldntPreventOthersFromEXecuting() throws InterruptedException {
+            stubCentralSystemTransactionListRequest(STOPPED_CHARGING_TRANSACTION_LIST_JSON_BODY);
+
+            Charger chargerOne = createSampleCharger("1");
+            Charger chargerTwo = createSampleCharger("2");
+
+            AtomicBoolean callbackOneExecuted = new AtomicBoolean(false);
+            ocppServer.onStopChargingAutomatically(chargerOne, () -> {
+                callbackOneExecuted.set(true);
+
+                throw new RuntimeException("Test exception");
+            });
+
+            AtomicBoolean callbackTwoExecuted = new AtomicBoolean(false);
+            ocppServer.onStopChargingAutomatically(chargerTwo, () -> callbackTwoExecuted.set(true));
+
+            Thread.sleep(TIME_TO_WAIT_FOR_CALLBACK_EXECUTION);
+
+            assertTrue(callbackOneExecuted.get(), "Callback should be executed once");
+            assertTrue(callbackTwoExecuted.get(), "Callback should be executed anyway");
+
+            callbackOneExecuted.set(false); // Reset for the next assertion.
+
+            Thread.sleep(TIME_TO_WAIT_FOR_CALLBACK_EXECUTION);
+
+            assertFalse(callbackOneExecuted.get(), "Callback should not be executed a second time even if an exception is thrown");
+        }
+
+        @Test
         void shouldNotTriggerCallbackAfterStoppingManually() throws InterruptedException {
             stubCentralSystemTransactionListRequest(STILL_CHARGING_TRANSACTION_LIST_JSON_BODY);
             stubChargepointRequest(OCPPServerEndpoints.STOP_CHARGING, ACCEPTED_JSON_RESPONSE);
@@ -353,7 +382,11 @@ class OCPPServerTest {
     }
 
     private Charger createSampleCharger() {
-        OCPPCharger ocppCharger = new OCPPCharger(IDENTITY, "TEST", new Connection("", OCPPServerTest.ID_TAG, ""));
+        return createSampleCharger(IDENTITY);
+    }
+
+    private Charger createSampleCharger(String identity) {
+        OCPPCharger ocppCharger = new OCPPCharger(identity, "TEST", new Connection("", OCPPServerTest.ID_TAG, ""));
 
         return ocppCharger.toModel();
     }
