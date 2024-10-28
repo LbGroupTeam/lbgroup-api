@@ -1,5 +1,6 @@
 package br.simplipark.chatbot.nodes.payment;
 
+import br.simplipark.evcs.chargingdata.ChargingData;
 import br.simplipark.evcs.chargingdata.ChargingDataRelationsService;
 import br.simplipark.payment.model.Payment;
 import br.simplipark.payment.model.PaymentReason;
@@ -36,6 +37,16 @@ public class PaymentInfoBuilder {
         return sb.toString();
     }
 
+    public static String buildChargingDataPaymentInfo(ChargingData chargingData, double amountDue) {
+        var formattedEnergy = FormatingUtils.roundToTwoDecimals(chargingData.getEnergyDeliveredInKWh());
+        var formattedCost = FormatingUtils.roundToTwoDecimals(amountDue);
+
+        return "Kwh carregados: " + formattedEnergy + "\n" +
+               "Valor total: *R$ " + formattedCost + "*\n" +
+               "Data de início: " + FormatingUtils.formatDateMedium(chargingData.getStartedAt()) + "\n" +
+               "Data de término: " + FormatingUtils.formatDateMedium(chargingData.getStoppedAt());
+    }
+
     private String buildPaymentInfo(Payment payment) {
         if (payment.getReason() == PaymentReason.EV_CHARGE) {
             return buildEvChargePaymentInfo(payment);
@@ -49,12 +60,6 @@ public class PaymentInfoBuilder {
 
         var chargingData = chargingDataRelationsService.findChargingDataById(chargingDataId);
 
-        var formattedEnergy = FormatingUtils.roundToTwoDecimals(chargingData.getEnergyDeliveredInKWh());
-        var formattedCost = FormatingUtils.roundToTwoDecimals(payment.getAmount());
-
-        return "Kwh carregados: " + formattedEnergy + "\n" +
-               "Valor total: *R$ " + formattedCost + "*\n" +
-               "Data de início: " + FormatingUtils.formatDateMedium(chargingData.getStartedAt()) + "\n" +
-               "Data de término: " + FormatingUtils.formatDateMedium(chargingData.getStoppedAt());
+        return buildChargingDataPaymentInfo(chargingData, payment.getAmount());
     }
 }

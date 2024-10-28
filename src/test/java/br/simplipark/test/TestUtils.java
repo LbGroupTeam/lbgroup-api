@@ -1,6 +1,7 @@
 package br.simplipark.test;
 
 import br.simplipark.evcs.chargingdata.ChargingData;
+import br.simplipark.evcs.model.Charger;
 import br.simplipark.user.User;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.common.Slf4jNotifier;
@@ -22,6 +23,14 @@ public class TestUtils {
 
     public static User createSampleUser() {
         return new User(1, "56788269050", "VIP");
+    }
+
+    public static Charger createSampleCharger() {
+        return new Charger("CHARGER 1", "LEFT", null, "SimpliPark", null, null);
+    }
+
+    public static ChargingData createSampleChargingData() {
+        return createSampleChargingData(1, LocalDateTime.now().minusHours(1), LocalDateTime.now());
     }
 
     public static ChargingData createSampleChargingData(long id, LocalDateTime start, LocalDateTime end) {

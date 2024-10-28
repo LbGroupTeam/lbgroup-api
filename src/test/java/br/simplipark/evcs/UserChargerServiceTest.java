@@ -2,9 +2,7 @@ package br.simplipark.evcs;
 
 import br.simplipark.evcs.chargingdata.ChargingData;
 import br.simplipark.evcs.chargingdata.ChargingDataRelationsService;
-import br.simplipark.evcs.model.Address;
-import br.simplipark.evcs.model.Charger;
-import br.simplipark.evcs.model.OperationMode;
+import br.simplipark.evcs.model.*;
 import br.simplipark.payment.PaymentService;
 import br.simplipark.payment.isolated.PricingRecord;
 import br.simplipark.payment.isolated.PricingRecordRepository;
@@ -17,6 +15,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -58,11 +57,7 @@ class UserChargerServiceTest {
     void startChargingSuccessfully_onStopChargingAutomaticallyExecutedOnce() {
         ChargingData chargingDataWithId = chargingDataWithId();
 
-        when(chargerService.startCharging(charger)).thenReturn(chargingData);
-        when(chargingDataRelationsService.saveChargingData(any())).thenReturn(chargingDataWithId);
-
-        when(chargingDataRelationsService.updateChargingDataWithNewMeasurements(anyLong(), any())).thenReturn(chargingData);
-        when(pricingRecordRepository.findByTypeClientPricesAndOwnerPrices(user.type(), charger.owner())).thenReturn(pricingRecord);
+        mockDependenciesToStartAndStopChargingSucessfully(chargingDataWithId);
 
         Runnable onStopChargingAutomatically = mock(Runnable.class);
 
@@ -121,13 +116,7 @@ class UserChargerServiceTest {
     void startAndStopCharging_ThenCheckForDuePayment() {
         ChargingData chargingDataWithId = chargingDataWithId();
 
-        when(chargerService.startCharging(charger)).thenReturn(chargingData);
-        when(chargingDataRelationsService.saveChargingData(any())).thenReturn(chargingDataWithId);
-        when(chargingDataRelationsService.findChargerIdByChargingDataId(anyLong())).thenReturn(1L);
-        when(chargerService.findChargerById(anyLong())).thenReturn(charger);
-        when(chargerService.stopCharging(charger)).thenReturn(chargingData);
-        when(chargingDataRelationsService.updateChargingDataWithNewMeasurements(anyLong(), any())).thenReturn(chargingData);
-        when(pricingRecordRepository.findByTypeClientPricesAndOwnerPrices(user.type(), charger.owner())).thenReturn(pricingRecord);
+        mockDependenciesToStartAndStopChargingSucessfully(chargingDataWithId);
 
         boolean startResult = userChargerService.startCharging(user, charger, () -> {
         });
@@ -148,18 +137,62 @@ class UserChargerServiceTest {
         Payment capturedPayment = paymentCaptor.getValue();
         assertEquals(user.id(), capturedPayment.getUserId());
         assertEquals(PaymentReason.EV_CHARGE, capturedPayment.getReason());
-        assertEquals(String.valueOf(chargingData.getId()), capturedPayment.getReasonData());
+        assertEquals(String.valueOf(chargingDataWithId.getId()), capturedPayment.getReasonData());
         assertEquals(5.0, capturedPayment.getAmount());
     }
 
-    private ChargingData chargingDataWithId() {
-        ChargingData localChargingData = createSampleChargingData();
-        localChargingData.setId(1L);
-        return localChargingData;
+    @Test
+    void shouldCallListenersCorrectly() {
+        ChargingData chargingDataWithId = chargingDataWithId();
+
+        mockDependenciesToStartAndStopChargingSucessfully(chargingDataWithId);
+
+        AtomicBoolean hasStartedListenerExecuted = new AtomicBoolean(false);
+        registerListenerWithAssertions(chargingDataWithId, hasStartedListenerExecuted, ChargeEventType.STARTED);
+
+        AtomicBoolean hasStoppedListenerExecuted = new AtomicBoolean(false);
+        registerListenerWithAssertions(chargingDataWithId, hasStoppedListenerExecuted, ChargeEventType.STOPPED);
+
+        userChargerService.startCharging(user, charger, () -> {
+        });
+
+        assertTrue(hasStartedListenerExecuted.get());
+
+        userChargerService.stopCharging(user);
+
+        assertTrue(hasStoppedListenerExecuted.get());
     }
 
-    private static ChargingData createSampleChargingData() {
-        return new ChargingData(10 * 1000, LocalDateTime.now().minusHours(1), LocalDateTime.now());
+    private void registerListenerWithAssertions(ChargingData chargingDataWithId, AtomicBoolean hasStoppedListenerExecuted, ChargeEventType stopped) {
+        userChargerService.addListener(chargeEvent -> {
+            assertEquals(user, chargeEvent.user());
+            assertEquals(charger, chargeEvent.charger());
+            assertEquals(chargingDataWithId, chargeEvent.chargingData());
+
+            hasStoppedListenerExecuted.set(stopped == chargeEvent.type());
+        });
+    }
+
+    private void mockDependenciesToStartAndStopChargingSucessfully(ChargingData chargingDataWithId) {
+        when(chargerService.startCharging(charger)).thenReturn(chargingData);
+        when(chargingDataRelationsService.saveChargingData(any())).thenReturn(chargingDataWithId);
+        when(chargingDataRelationsService.findChargerIdByChargingDataId(anyLong())).thenReturn(1L);
+        when(chargerService.findChargerById(anyLong())).thenReturn(charger);
+        when(chargerService.stopCharging(charger)).thenReturn(chargingData);
+        when(chargingDataRelationsService.updateChargingDataWithNewMeasurements(anyLong(), any())).thenReturn(chargingDataWithId);
+        when(pricingRecordRepository.findByTypeClientPricesAndOwnerPrices(user.type(), charger.owner())).thenReturn(pricingRecord);
+        when(paymentService.addPayment(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    }
+
+    private ChargingData chargingDataWithId() {
+        ChargingData chargingDataWithId = createSampleChargingData();
+        chargingDataWithId.setId(1L);
+
+        return chargingDataWithId;
+    }
+
+    private ChargingData createSampleChargingData() {
+        return new ChargingData(10000, LocalDateTime.now().minusHours(1), LocalDateTime.now());
     }
 
     private Charger createDummyCharger() {
