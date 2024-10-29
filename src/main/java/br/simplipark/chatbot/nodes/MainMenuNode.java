@@ -25,24 +25,25 @@ public class MainMenuNode {
     private final LbCoinsPurchaseFlow lbCoinsPurchaseFlow;
     private final ChargeVehicleFlow chargingFlow;
     private final PaymentFlow paymentFlow;
-    private final ReportingFlow chargeHistory;
+    private final ReportingFlow reportingFlow;
 
 
     private final UserService userService;
 
-    private final static String MENU_OPTIONS = """
+    private static final  String MENU_OPTIONS = """
                 1 - Iniciar carga
                 2 - Comprar LB Coins
                 3 - Ver histórico de cargas desse mês
+                4 - Consultar saldo de LB Coins
                 """;
 
-    public MainMenuNode(QueueMessageDispatcher queueMessageDispatcher, ConversationPathManager conversationPathManager, LbCoinsPurchaseFlow lbCoinsPurchaseFlow, ChargeVehicleFlow chargingFlow, PaymentFlow paymentFlow, ReportingFlow chargeHistory, UserService userService) {
+    public MainMenuNode(QueueMessageDispatcher queueMessageDispatcher, ConversationPathManager conversationPathManager, LbCoinsPurchaseFlow lbCoinsPurchaseFlow, ChargeVehicleFlow chargingFlow, PaymentFlow paymentFlow, ReportingFlow reportingFlow, UserService userService) {
         this.queueMessageDispatcher = queueMessageDispatcher;
         this.conversationPathManager = conversationPathManager;
         this.lbCoinsPurchaseFlow = lbCoinsPurchaseFlow;
         this.chargingFlow = chargingFlow;
         this.paymentFlow = paymentFlow;
-        this.chargeHistory = chargeHistory;
+        this.reportingFlow = reportingFlow;
         this.userService = userService;
     }
 
@@ -139,6 +140,7 @@ public class MainMenuNode {
             case 1 -> CHARGE_VEHICLE;
             case 2 -> LB_COINS_PURCHASE;
             case 3 -> CHARGE_HISTORY;
+            case 4 -> BALANCE_INQUIRY;
             default -> null;
         };
 
@@ -156,7 +158,8 @@ public class MainMenuNode {
             case LB_COINS_PURCHASE -> lbCoinsPurchaseFlow.handleMessage(chatbotUser, chatbotMessage);
             case PAYMENT -> paymentFlow.handleMessage(chatbotUser, chatbotMessage);
             case CHARGE_VEHICLE -> chargingFlow.handleMessage(chatbotUser, chatbotMessage);
-            case CHARGE_HISTORY -> chargeHistory.handleMessage(chatbotUser, chatbotMessage);
+            case CHARGE_HISTORY -> reportingFlow.handleReportingRequest(chatbotUser);
+            case BALANCE_INQUIRY -> reportingFlow.handleBalanceInquiry(chatbotUser);
         }
     }
 }
