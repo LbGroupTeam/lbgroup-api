@@ -3,19 +3,13 @@ package br.simplipark.chatbot.e2e.integrations;
 import br.simplipark.chatbot.messagedispatcher.infobip.IncomingMessageDTO;
 import br.simplipark.chatbot.messagedispatcher.infobip.InfobipMessageDispatcher;
 import br.simplipark.test.TestUtils;
-import br.simplipark.util.HttpUtil;
 import br.simplipark.util.Util;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.web.servlet.context.ServletWebServerInitializedEvent;
-import org.springframework.context.event.EventListener;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 
@@ -23,13 +17,15 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
 @Service
 public class MessageDispatcherTestService {
 
-    private static int applicationPort;
-
     private static final String MESSAGE_LISTENER_URL = "/text";
+    private static final String SEND_MESSAGE_URL = "/infobip/receive-message";
 
     private static final WireMockServer wireMockServer = initializeWireMockServer();
 
     private final MessageAssertionService messageReceiver;
+
+    @Autowired(required = false)
+    private MockMvc mockMvc;
 
     public MessageDispatcherTestService(MessageAssertionService messageReceiver) {
         this.messageReceiver = messageReceiver;
@@ -37,35 +33,11 @@ public class MessageDispatcherTestService {
         initializeIncomingMessageListener();
     }
 
-    @EventListener
-    public void onApplicationEvent(final ServletWebServerInitializedEvent event) {
-        log.info("Web server started on port {}, setting port for MessageDispatcherTestService", event.getWebServer().getPort());
-
-        applicationPort = event.getWebServer().getPort();
-    }
-
-    public void sendMessage(String message) throws IOException {
-        var response = sendMessageThroughHttpRequest(message);
-
-        if (response.statusCode() != 200) {
-            throw new RuntimeException("Failed to send message: " + response.body());
-        }
-    }
-
-    private HttpResponse<String> sendMessageThroughHttpRequest(String message) throws IOException {
-        String json = createMessageToSend(message);
-
-        String sendMessageUrl = String.format("http://localhost:%s/infobip/receive-message", applicationPort);
-
-        log.info("Making request to {}", sendMessageUrl);
-
-        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
-                .uri(URI.create(sendMessageUrl))
-                .timeout(Duration.ofSeconds(10))
-                .method("POST", HttpRequest.BodyPublishers.ofString(json))
-                .header("Content-Type", "application/json");
-
-        return HttpUtil.sendSimpleHttpRequest(requestBuilder.build());
+    public void sendMessage(String message) throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.post(SEND_MESSAGE_URL)
+                .contentType("application/json")
+                .content(createMessageToSend(message))
+        );
     }
 
     private static WireMockServer initializeWireMockServer() {
@@ -113,11 +85,11 @@ public class MessageDispatcherTestService {
     }
 
     private String createMessageToSend(String message) {
-        var messageDto = IncomingMessageDTO.createIncomingMessageDTO("5511934554764", "12243729586", message);
+        var messageDto = IncomingMessageDTO.createIncomingMessageDTO(RandomSenderNumberProvider.senderNumber, "12243729586", message);
 
         return Util.serialize(messageDto);
     }
 
-    public record MessagePayloadDTO(String from, String to, InfobipMessageDispatcher.TextContent content) {
+    private record MessagePayloadDTO(String from, String to, InfobipMessageDispatcher.TextContent content) {
     }
 }

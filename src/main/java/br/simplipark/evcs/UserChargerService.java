@@ -84,13 +84,12 @@ public class UserChargerService {
             return null;
         }
 
-        var savedChargingData = chargingDataRelationsService.saveChargingData(chargingData);
-        chargingDataRelationsService.createRelationBetweenUserAndChargingData(user, savedChargingData);
+        chargingDataRelationsService.createRelationBetweenUserAndChargingData(user, chargingData);
 
-        log.info("Charging session started for User [{}] on Charger [{}]. ChargingData ID: [{}]", user.id(), charger.name(), savedChargingData.getId());
+        log.info("Charging session started for User [{}] on Charger [{}]. ChargingData ID: [{}]", user.id(), charger.name(), chargingData.getId());
 
-        userCurrentChargingDataIds.put(user, savedChargingData.getId());
-        return savedChargingData;
+        userCurrentChargingDataIds.put(user, chargingData.getId());
+        return chargingData;
     }
 
     private void registerAutoStopCallback(User user, Charger charger, Runnable onStopChargingAutomatically) {

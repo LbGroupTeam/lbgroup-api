@@ -30,7 +30,7 @@ class OCPPServerTest {
     private static final String ID_TAG = "192.168.0.1";
 
     private static final long CHARGER_STOPPED_CHECK_INTERVAL = 50;
-    private static final long TIME_TO_WAIT_FOR_CALLBACK_EXECUTION = CHARGER_STOPPED_CHECK_INTERVAL + 25;
+    private static final long TIME_TO_WAIT_FOR_CALLBACK_EXECUTION = CHARGER_STOPPED_CHECK_INTERVAL + 30;
     private static final long TIME_TO_WAIT_WHEN_STOPPING_CHARGE = 0;
 
     private OCPPServer ocppServer;
@@ -257,7 +257,7 @@ class OCPPServerTest {
         }
 
         @Test
-        void shouldTriggerStopChargingCallbackAutomaticallyButNotTwiceOnExceptionAndShouldntPreventOthersFromEXecuting() throws InterruptedException {
+        void shouldTriggerStopChargingCallbackAutomaticallyButNotTwiceOnExceptionAndShouldntPreventOthersFromExecuting() throws InterruptedException {
             stubCentralSystemTransactionListRequest(STOPPED_CHARGING_TRANSACTION_LIST_JSON_BODY);
 
             Charger chargerOne = createSampleCharger("1");

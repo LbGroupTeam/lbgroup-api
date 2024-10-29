@@ -5,30 +5,34 @@ import br.simplipark.test.OCPPServerTestHelper;
 import br.simplipark.test.TestUtils;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
 @Slf4j
-@Service
-public class OCPPMockServer {
-    static {
-        initializeWireMockServer();
+public class OCPPMockServer implements BeforeEachCallback {
+    private static final WireMockServer server = initializeWireMockServer();
+
+    @Override
+    public void beforeEach(ExtensionContext extensionContext) {
+        server.resetAll();
+        initializeStubResponses();
     }
 
-    private static void initializeWireMockServer() {
+    private static WireMockServer initializeWireMockServer() {
         log.info("Initializing WireMock OCPP server");
 
         var server = TestUtils.createWireMockServer();
-
-        initializeStubResponses(server);
 
         server.start();
 
         initializeApplicationProperties(server.port());
 
         log.info("WireMock OCPP server started on port {}", server.port());
+
+        return server;
     }
 
-    private static void initializeStubResponses(WireMockServer server) {
+    private static void initializeStubResponses() {
         OCPPServerTestHelper ocppServerTestHelper = new OCPPServerTestHelper(server);
 
         ocppServerTestHelper.stubCentralSystemTransactionListRequest(OCPPServerTestHelper.STOPPED_CHARGING_TRANSACTION_LIST_JSON_BODY);

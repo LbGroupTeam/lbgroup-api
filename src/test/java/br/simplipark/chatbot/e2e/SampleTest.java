@@ -2,11 +2,9 @@ package br.simplipark.chatbot.e2e;
 
 import br.simplipark.chatbot.e2e.integrations.MessageAssertionService;
 import br.simplipark.chatbot.e2e.integrations.MessageDispatcherTestService;
+import br.simplipark.chatbot.e2e.integrations.PaymentTestDispatcher;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import java.io.IOException;
-
 
 @E2eTest
 class SampleTest {
@@ -17,8 +15,11 @@ class SampleTest {
     @Autowired
     private MessageAssertionService messageAssertionService;
 
+    @Autowired
+    private PaymentTestDispatcher paymentTestDispatcher;
+
     @Test
-    void shouldStartAndStopAndPaySuccessfully() throws IOException {
+    void shouldStartAndStopAndPaySuccessfully() throws Exception {
         messageSender.sendMessage("Oi");
 
         messageAssertionService.assertLastReceivedMessageEquals("Seja bem vindo(a)!\n" +
@@ -56,6 +57,38 @@ class SampleTest {
         messageAssertionService.assertLastReceivedMessageContains("Confirma o pagamento?");
 
         messageSender.sendMessage("confirmar");
+
+        messageAssertionService.assertLastReceivedMessageContains("Pagamento confirmado! Obrigado por utilizar nossa plataforma! Até a próxima.");
+    }
+
+    @Test
+    void shouldBeAbleToBuyLbCoinsSucessfully() throws Exception {
+        messageSender.sendMessage("Oi");
+
+        messageSender.sendMessage("62115264070");
+
+        messageSender.sendMessage("2");
+
+        paymentTestDispatcher.simulateSucessfullLbCoinsPurchase();
+
+        messageAssertionService.assertLastReceivedMessageContains("Compra efetuada com sucesso.");
+    }
+
+    @Test
+    void shouldBeAbleToPayWithCreditCardSucessfully() throws Exception {
+        messageSender.sendMessage("Oi");
+
+        messageSender.sendMessage("62115264070");
+
+        messageSender.sendMessage("1");
+
+        messageSender.sendMessage("1");
+
+        messageSender.sendMessage("parar");
+
+        messageSender.sendMessage("2");
+
+        paymentTestDispatcher.simulateSucessfullCreditCardPayment();
 
         messageAssertionService.assertLastReceivedMessageContains("Pagamento confirmado! Obrigado por utilizar nossa plataforma! Até a próxima.");
     }

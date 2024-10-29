@@ -13,7 +13,7 @@ public class MessageAssertionService {
     private final List<String> messagesReceived = new ArrayList<>();
 
     public void addMessageReceived(String message) {
-        messagesReceived.add(message);
+        messagesReceived.addFirst(message);
     }
 
     public void assertLastReceivedMessageContains(String expectedSubstring) {
@@ -31,6 +31,6 @@ public class MessageAssertionService {
             throw new RuntimeException("No messages received");
         }
 
-        return messagesReceived.getLast();
+        return messagesReceived.getFirst();
     }
 }

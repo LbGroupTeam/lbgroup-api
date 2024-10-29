@@ -7,6 +7,7 @@ import br.simplipark.user.User;
 import br.simplipark.util.Cryptographer;
 import br.simplipark.util.Util;
 import com.stripe.Stripe;
+import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
 import com.stripe.model.Price;
@@ -20,9 +21,14 @@ import org.springframework.http.HttpEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 import lombok.extern.slf4j.Slf4j;
@@ -33,13 +39,16 @@ public class StripePayment implements PaymentGateway {
     private final String webhookSecret;
     private final String lbCoinsPurchaseLink;
 
+    private final boolean disableSignatureCheck;
+
     private final Map<String, Consumer<CompletedPayment>> callbacks = new HashMap<>();
 
-    public StripePayment(@Value("${stripe.api_key}") String apiKey, @Value("${stripe.webhook_secret}") String webhookSecret, @Value("${stripe.lb_coins_purchase_link}") String lbCoinsPurchaseLink) {
+    public StripePayment(@Value("${stripe.api_key}") String apiKey, @Value("${stripe.webhook_secret}") String webhookSecret, @Value("${stripe.lb_coins_purchase_link}") String lbCoinsPurchaseLink, @Value("${stripe.disable_signature_check:false}") boolean disableSignatureCheck) {
         Stripe.apiKey = apiKey;
 
         this.webhookSecret = webhookSecret;
         this.lbCoinsPurchaseLink = lbCoinsPurchaseLink;
+        this.disableSignatureCheck = disableSignatureCheck;
     }
 
     @Override
@@ -107,6 +116,10 @@ public class StripePayment implements PaymentGateway {
 
     private Event parseEventFromRequest(String payload, String signatureHeader) {
         try {
+            if (disableSignatureCheck) {
+                return Webhook.constructEvent(payload, signatureHeader, webhookSecret, 0);
+            }
+
             return Webhook.constructEvent(payload, signatureHeader, webhookSecret);
         } catch (Exception e) {
             throw new RuntimeException("Error parsing Stripe event", e);
@@ -119,20 +132,18 @@ public class StripePayment implements PaymentGateway {
 
         log.debug("Calling Stripe callback for user [{}]", userId);
 
-        var callback = callbacks.get(userId);
+        var callback = callbacks.remove(userId);
         if (callback == null) {
             log.warn("No callback found for user [{}]", userId);
 
             return;
         }
 
-        callback.accept(new CompletedPayment(amountPurchased, outcome));
+        Util.wrapRunnableWithTryCatch(() -> callback.accept(new CompletedPayment(amountPurchased, outcome))).run();
 
         log.debug("Callback called for user [{}]", userId);
 
         log.info("Payment outcome for user [{}]: {}", userId, outcome);
-
-        callbacks.remove(userId);
     }
 
     private PaymentOutcome retrievePaymentOutcome(Session session) {
