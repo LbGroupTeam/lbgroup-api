@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.Random;
 
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 
@@ -56,5 +57,17 @@ public class TestUtils {
                 .dynamicPort()
                 .notifier(new Slf4jNotifier(false))
         );
+    }
+
+    public static String generateRandomNumber(int length) {
+        var random = new Random();
+
+        StringBuilder sb = new StringBuilder(length);
+        for (int i = 0; i < length; i++) {
+            int digit = random.nextInt(10);
+            sb.append(digit);
+        }
+
+        return sb.toString();
     }
 }

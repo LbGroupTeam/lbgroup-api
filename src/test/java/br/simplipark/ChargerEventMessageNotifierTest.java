@@ -27,6 +27,23 @@ class ChargerEventMessageNotifierTest {
 
     @Test
     void shouldSendMessageWhenEventIsReceived() {
+        mockSampleChargeEventTriggering();
+
+        new ChargerEventMessageNotifier(messageDispatcher, userChargerService, NUMBERS_TO_NOTIFY);
+
+        verify(messageDispatcher, times(2)).sendMessage(anyString(), anyString());
+    }
+
+    @Test
+    void shouldntSendMessagesWhenContactListIsEmpty() {
+        mockSampleChargeEventTriggering();
+
+        new ChargerEventMessageNotifier(messageDispatcher, userChargerService, "");
+
+        verify(messageDispatcher, never()).sendMessage(anyString(), anyString());
+    }
+
+    private void mockSampleChargeEventTriggering() {
         doAnswer(invocation -> {
             Consumer<ChargeEvent> consumer = invocation.getArgument(0);
 
@@ -34,10 +51,6 @@ class ChargerEventMessageNotifierTest {
 
             return null;
         }).when(userChargerService).addListener(any());
-
-        new ChargerEventMessageNotifier(messageDispatcher, userChargerService, NUMBERS_TO_NOTIFY);
-
-        verify(messageDispatcher, times(2)).sendMessage(anyString(), anyString());
     }
 
     private static ChargeEvent createSampleChargeEvent() {

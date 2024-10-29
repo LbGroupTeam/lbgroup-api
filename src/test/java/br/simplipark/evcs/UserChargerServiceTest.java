@@ -75,7 +75,6 @@ class UserChargerServiceTest {
 
         assertTrue(result);
         verify(chargerService).startCharging(charger);
-        verify(chargingDataRelationsService).saveChargingData(chargingData);
         verify(chargingDataRelationsService).createRelationBetweenUserAndChargingData(user, chargingDataWithId);
 
         // Verify that the onStopChargingAutomatically Runnable is run once
@@ -84,8 +83,7 @@ class UserChargerServiceTest {
 
     @Test
     void startCharging_AlreadyCharging() {
-        when(chargerService.startCharging(charger)).thenReturn(chargingData);
-        when(chargingDataRelationsService.saveChargingData(any())).thenReturn(chargingDataWithId());
+        when(chargerService.startCharging(charger)).thenReturn(chargingDataWithId());
 
         userChargerService.startCharging(user, charger, () -> {
         });
@@ -125,7 +123,6 @@ class UserChargerServiceTest {
         userChargerService.stopCharging(user);
 
         verify(chargerService).startCharging(charger);
-        verify(chargingDataRelationsService).saveChargingData(chargingData);
         verify(chargingDataRelationsService).createRelationBetweenUserAndChargingData(user, chargingDataWithId);
         verify(chargerService).stopCharging(charger);
         verify(chargingDataRelationsService).updateChargingDataWithNewMeasurements(anyLong(), eq(chargingData));
@@ -174,8 +171,7 @@ class UserChargerServiceTest {
     }
 
     private void mockDependenciesToStartAndStopChargingSucessfully(ChargingData chargingDataWithId) {
-        when(chargerService.startCharging(charger)).thenReturn(chargingData);
-        when(chargingDataRelationsService.saveChargingData(any())).thenReturn(chargingDataWithId);
+        when(chargerService.startCharging(charger)).thenReturn(chargingDataWithId);
         when(chargingDataRelationsService.findChargerIdByChargingDataId(anyLong())).thenReturn(1L);
         when(chargerService.findChargerById(anyLong())).thenReturn(charger);
         when(chargerService.stopCharging(charger)).thenReturn(chargingData);

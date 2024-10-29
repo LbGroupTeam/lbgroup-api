@@ -20,6 +20,11 @@ public class ChargerEventMessageNotifier {
 
         this.numbersToNotify = numbersToNotify;
 
+        if (numbersToNotify.isEmpty()) {
+            log.warn("No numbers to notify were provided");
+            return;
+        }
+
         userChargerService.addListener(this::onChargerEvent);
     }
 

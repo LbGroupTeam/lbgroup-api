@@ -228,8 +228,7 @@ public class OCPPServer {
             log.info("Stopped chargers: {}", stoppedChargers);
 
             for (var charger : stoppedChargers) {
-                var callback = callbacks.get(charger);
-                callbacks.remove(charger);
+                var callback = callbacks.remove(charger);
 
                 log.info("Executing callback for charger: {}", charger);
 
@@ -280,6 +279,8 @@ public class OCPPServer {
         relation.setChargingDataId(chargingData.getId());
 
         ocppTransactionChargingDataRelationRepository.save(relation);
+
+        log.debug("Relation created between transaction: {} and charging data: {}", transactionData.transactionId(), chargingData.getId());
 
         return chargingData;
     }
