@@ -8,6 +8,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Slf4j
 @Service
 public class ChargerEventMessageNotifier {
@@ -31,24 +34,32 @@ public class ChargerEventMessageNotifier {
     private void onChargerEvent(ChargeEvent chargeEvent) {
         log.info("Received charger event: {}", chargeEvent);
 
-        var message = buildMessage(chargeEvent);
+        String templateName = "evento_carga";
+        var args = buildMessageArgs(chargeEvent);
 
-        log.debug("Sending message {} to numbers: {}", message, numbersToNotify);
+        log.debug("Sending message to numbers: {}", numbersToNotify);
 
         for (String number : numbersToNotify.split("\\D+")) {
-            messageDispatcher.sendMessage(number, message);
+            messageDispatcher.sendTemplateMessage(number, templateName, args);
         }
 
         log.debug("Message sent to numbers: {}", numbersToNotify);
     }
 
-    private String buildMessage(ChargeEvent chargeEvent) {
+    private List<String> buildMessageArgs(ChargeEvent chargeEvent) {
         String keyword = switch (chargeEvent.type()) {
-            case STARTED -> "Carga iniciada";
-            case STOPPED -> "Carga finalizada";
+            case STARTED -> "iniciada";
+            case STOPPED -> "finalizada";
         };
 
-        return keyword + " para CPF " + chargeEvent.user().cpf() + " no carregador " + chargeEvent.charger().name() + ":\n\n" +
-               PaymentInfoBuilder.buildChargingDataPaymentInfo(chargeEvent.chargingData(), chargeEvent.amountDue());
+        var args = new ArrayList<>(List.of(
+                keyword,
+                chargeEvent.user().cpf(),
+                chargeEvent.charger().name()
+        ));
+
+        args.addAll(PaymentInfoBuilder.buildChargingDataPaymentInfoArgs(chargeEvent.chargingData(), chargeEvent.amountDue()));
+
+        return args;
     }
 }

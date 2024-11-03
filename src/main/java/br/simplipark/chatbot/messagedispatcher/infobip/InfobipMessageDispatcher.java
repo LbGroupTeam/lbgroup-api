@@ -17,7 +17,9 @@ import java.net.URI;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 @Slf4j
@@ -47,6 +49,15 @@ public class InfobipMessageDispatcher implements MessageDispatcher {
         MessagePayloadDTO messagePayload = buildMessagePayloadDTO(contact, new TextContent(message));
 
         sendHttpRequestWithPayload(Util.serialize(messagePayload), baseUrl + "/text");
+    }
+
+    @Override
+    public void sendTemplateMessage(String contact, String templateName, List<String> templateArgs) {
+        log.info("Sending template message to {}: {} with args: {}", contact, templateName, templateArgs);
+
+        var templateMessageDto = TemplateMessageDTO.of(senderNumber, contact, templateName, templateArgs);
+
+        sendHttpRequestWithPayload(Util.serialize(templateMessageDto), baseUrl + "/template");
     }
 
     @Override
@@ -122,6 +133,19 @@ public class InfobipMessageDispatcher implements MessageDispatcher {
         return false;
     }
 
+    public record TemplateMessageDTO(List<MessagePayloadDTO> messages) {
+        public static TemplateMessageDTO of(String from, String to, String templateName, List<String> placeholders) {
+            MessagePayloadDTO messagePayload = new MessagePayloadDTO();
+
+            messagePayload.setTo(to);
+            messagePayload.setFrom(from);
+
+            messagePayload.setContent(TextTemplateContent.of(templateName, placeholders, "pt_BR"));
+
+            return new TemplateMessageDTO(List.of(messagePayload));
+        }
+    }
+
     @Data
     public static class MessagePayloadDTO {
         private String from;
@@ -136,5 +160,17 @@ public class InfobipMessageDispatcher implements MessageDispatcher {
     }
 
     public record FileContent(String mediaUrl, String filename) implements Content {
+    }
+
+    public record TextTemplateContent(String templateName, Map<String, Object> templateData, String language) implements Content {
+        public static TextTemplateContent of(String templateName, List<String> placeholders, String language) {
+            Map<String, Object> body = new HashMap<>();
+            body.put("placeholders", placeholders);
+
+            Map<String, Object> templateData = new HashMap<>();
+            templateData.put("body", body);
+
+            return new TextTemplateContent(templateName, templateData, language);
+        }
     }
 }

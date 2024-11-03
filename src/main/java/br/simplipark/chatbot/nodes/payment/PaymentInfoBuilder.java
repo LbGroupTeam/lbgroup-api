@@ -7,6 +7,7 @@ import br.simplipark.payment.model.PaymentReason;
 import br.simplipark.util.FormatingUtils;
 import org.springframework.stereotype.Service;
 
+import java.text.MessageFormat;
 import java.util.List;
 
 import static br.simplipark.payment.PaymentService.calculateTotalCost;
@@ -38,13 +39,20 @@ public class PaymentInfoBuilder {
     }
 
     public static String buildChargingDataPaymentInfo(ChargingData chargingData, double amountDue) {
+        var args = buildChargingDataPaymentInfoArgs(chargingData, amountDue);
+
+        return MessageFormat.format("""
+                Kwh carregados: {0}
+                Valor total: *R$ {1}*
+                Data de início: {2}
+                Data de término: {3}""", args.toArray());
+    }
+
+    public static List<String> buildChargingDataPaymentInfoArgs(ChargingData chargingData, double amountDue) {
         var formattedEnergy = FormatingUtils.roundToTwoDecimals(chargingData.getEnergyDeliveredInKWh());
         var formattedCost = FormatingUtils.roundToTwoDecimals(amountDue);
 
-        return "Kwh carregados: " + formattedEnergy + "\n" +
-               "Valor total: *R$ " + formattedCost + "*\n" +
-               "Data de início: " + FormatingUtils.formatDateMedium(chargingData.getStartedAt()) + "\n" +
-               "Data de término: " + FormatingUtils.formatDateMedium(chargingData.getStoppedAt());
+        return List.of(formattedEnergy, formattedCost, FormatingUtils.formatDateMedium(chargingData.getStartedAt()), FormatingUtils.formatDateMedium(chargingData.getStoppedAt()));
     }
 
     private String buildPaymentInfo(Payment payment) {

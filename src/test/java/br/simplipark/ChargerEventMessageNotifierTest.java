@@ -31,7 +31,7 @@ class ChargerEventMessageNotifierTest {
 
         new ChargerEventMessageNotifier(messageDispatcher, userChargerService, NUMBERS_TO_NOTIFY);
 
-        verify(messageDispatcher, times(2)).sendMessage(anyString(), anyString());
+        verify(messageDispatcher, times(2)).sendTemplateMessage(anyString(), anyString(), anyList());
     }
 
     @Test
@@ -40,7 +40,7 @@ class ChargerEventMessageNotifierTest {
 
         new ChargerEventMessageNotifier(messageDispatcher, userChargerService, "");
 
-        verify(messageDispatcher, never()).sendMessage(anyString(), anyString());
+        verify(messageDispatcher, never()).sendTemplateMessage(anyString(), anyString(), anyList());
     }
 
     private void mockSampleChargeEventTriggering() {

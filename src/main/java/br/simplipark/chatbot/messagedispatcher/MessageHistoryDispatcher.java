@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.function.Consumer;
 
 @Slf4j
@@ -36,6 +37,16 @@ public class MessageHistoryDispatcher implements MessageDispatcher {
         log.info("Logging outgoing message for contact: {}", contact);
         logMessageToHistory(contact, formatOutgoingMessage(message));
         delegateDispatcher.sendMessage(contact, message);
+    }
+
+    @Override
+    public void sendTemplateMessage(String contact, String templateName, List<String> templateArgs) {
+        log.info("Logging outgoing template message for contact: {}", contact);
+
+        String message = templateName + " " + templateArgs;
+
+        logMessageToHistory(contact, formatOutgoingMessage(message));
+        delegateDispatcher.sendTemplateMessage(contact, templateName, templateArgs);
     }
 
     @Override

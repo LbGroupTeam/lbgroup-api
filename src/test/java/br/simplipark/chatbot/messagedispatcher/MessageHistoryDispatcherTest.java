@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -79,6 +80,22 @@ class MessageHistoryDispatcherTest {
         assertTrue(fileContent.contains(file.id()));
     }
 
+    @Test
+    void testCanSendTemplateMessagesSucessfully() {
+        String templateName = "templateName";
+        List<String> templateArgs = List.of("arg1", "arg2");
+
+        messageHistoryDispatcher.sendTemplateMessage(userContact, templateName, templateArgs);
+
+        Path userFilePath = Paths.get(historyDirectoryPath, userContact + ".txt");
+        assertTrue(Files.exists(userFilePath));
+
+        String fileContent = TestUtils.readTextFromFilePath(userFilePath);
+        assertTrue(fileContent.contains(templateName));
+        assertTrue(fileContent.contains(templateArgs.get(0)));
+        assertTrue(fileContent.contains(templateArgs.get(1)));
+    }
+
     private static void assertTimestampIsCorrect(String[] lines) {
         String[] message = lines[0].split("] ");
         String timestamp = message[0].substring(1);
@@ -95,6 +112,11 @@ class MessageHistoryDispatcherTest {
 
         @Override
         public void sendMessage(String contact, String message) {
+            // Do nothing, this is a mock
+        }
+
+        @Override
+        public void sendTemplateMessage(String contact, String templateName, List<String> templateArgs) {
             // Do nothing, this is a mock
         }
 
