@@ -131,9 +131,9 @@ public class OCPPServer {
             boolean hasStoppedSuccessfully = parseSimpleAcceptOrRejectRequest(request);
             log.info("Charging stop request for charger {} was successful: {}", charger, hasStoppedSuccessfully);
 
-            if (hasStoppedSuccessfully) {
-                callbacks.remove(charger);
+            callbacks.remove(charger);
 
+            if (hasStoppedSuccessfully) {
                 waitForTransactionToBeRegisteredInCentralSystem();
             }
 

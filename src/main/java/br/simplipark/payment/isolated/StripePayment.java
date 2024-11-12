@@ -5,9 +5,9 @@ import br.simplipark.payment.model.CompletedPayment;
 import br.simplipark.payment.model.PaymentOutcome;
 import br.simplipark.user.User;
 import br.simplipark.util.Cryptographer;
+import br.simplipark.util.NetworkProperties;
 import br.simplipark.util.Util;
 import com.stripe.Stripe;
-import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
 import com.stripe.model.Price;
@@ -21,14 +21,9 @@ import org.springframework.http.HttpEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Consumer;
 
 import lombok.extern.slf4j.Slf4j;
@@ -167,7 +162,7 @@ public class StripePayment implements PaymentGateway {
 
         SessionCreateParams sessionParams = SessionCreateParams.builder()
                 .setClientReferenceId(userId)
-                .setSuccessUrl("https://fleet-magnetic-chigger.ngrok-free.app/payment-info.html")
+                .setSuccessUrl(NetworkProperties.externalHttpsUrl + "/payment-info.html")
                 .addLineItem(
                         SessionCreateParams.LineItem.builder()
                                 .setPrice(price.getId())

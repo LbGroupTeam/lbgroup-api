@@ -8,6 +8,7 @@ import br.simplipark.payment.isolated.PricingRecord;
 import br.simplipark.payment.isolated.PricingRecordRepository;
 import br.simplipark.payment.model.Payment;
 import br.simplipark.payment.model.PaymentReason;
+import br.simplipark.test.TestUtils;
 import br.simplipark.user.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -45,7 +46,7 @@ class UserChargerServiceTest {
 
         userChargerService = new UserChargerService(chargerService, paymentService, chargingDataRelationsService, pricingRecordRepository);
 
-        user = new User(1, "56788269050", "VIP");
+        user = TestUtils.createSampleUser();
         charger = createDummyCharger();
         chargingData = createSampleChargingData();
 

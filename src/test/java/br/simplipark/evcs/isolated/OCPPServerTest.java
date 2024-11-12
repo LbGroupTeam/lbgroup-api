@@ -307,7 +307,7 @@ class OCPPServerTest {
         }
 
         @Test
-        void shouldTriggerCallbackAfterAttemptingToStopManuallyButFails() throws InterruptedException {
+        void shouldNotTriggerCallbackAfterAttemptingToStopManuallyButFails() throws InterruptedException {
             stubCentralSystemTransactionListRequest(STILL_CHARGING_TRANSACTION_LIST_JSON_BODY);
             stubChargepointRequest(OCPPServerEndpoints.STOP_CHARGING, REJECTED_JSON_RESPONSE);
 
@@ -324,7 +324,7 @@ class OCPPServerTest {
 
             Thread.sleep(TIME_TO_WAIT_FOR_CALLBACK_EXECUTION);
 
-            assertTrue(callbackExecuted.get(), "Callback should be executed after manual stop fails");
+            assertFalse(callbackExecuted.get(), "Callback should not be executed after manual stop fails");
         }
     }
 

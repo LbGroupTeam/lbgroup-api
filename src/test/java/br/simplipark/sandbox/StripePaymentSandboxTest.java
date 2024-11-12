@@ -1,6 +1,7 @@
 package br.simplipark.sandbox;
 
 import br.simplipark.payment.isolated.StripePayment;
+import br.simplipark.test.TestUtils;
 import br.simplipark.user.User;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -18,7 +19,7 @@ class StripePaymentSandboxTest {
 
     @Test
     void createLinkForPayment() {
-        User user = new User(0, "Test", "");
+        User user = TestUtils.createSampleUser();
         double amount = 0.5;
         String link = stripePayment.createLinkForPayment(user, amount);
 

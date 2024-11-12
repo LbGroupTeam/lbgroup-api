@@ -4,6 +4,7 @@ import br.simplipark.chatbot.messagedispatcher.MessageDispatcher;
 import br.simplipark.chatbot.nodes.payment.PaymentInfoBuilder;
 import br.simplipark.evcs.UserChargerService;
 import br.simplipark.evcs.model.ChargeEvent;
+import br.simplipark.user.User;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -52,9 +53,11 @@ public class ChargerEventMessageNotifier {
             case STOPPED -> "finalizada";
         };
 
+        User user = chargeEvent.user();
+
         var args = new ArrayList<>(List.of(
                 keyword,
-                chargeEvent.user().cpf(),
+                user.name() + " (" + chargeEvent.user().cpf() + ")",
                 chargeEvent.charger().name()
         ));
 

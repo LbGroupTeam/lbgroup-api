@@ -140,6 +140,8 @@ public class UserChargerService {
         var pricingRecord = pricingRecordRepository.findByTypeClientPricesAndOwnerPrices(user.type(), chargerOwner);
         var costPerKwh = pricingRecord.getMultiplicatorPrices();
 
+        log.debug("Pricing record [{}] found for User [{}] with ChargingData ID [{}].", pricingRecord, user.id(), chargingData.getId());
+
         double cost = costPerKwh * chargingData.getEnergyDeliveredInKWh();
 
         log.debug("Calculated cost [{}] for User [{}] with ChargingData ID [{}].", cost, user.id(), chargingData.getId());
