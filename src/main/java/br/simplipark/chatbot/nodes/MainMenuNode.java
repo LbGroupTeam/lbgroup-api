@@ -27,10 +27,9 @@ public class MainMenuNode {
     private final PaymentFlow paymentFlow;
     private final ReportingFlow reportingFlow;
 
-
     private final UserService userService;
 
-    private static final  String MENU_OPTIONS = """
+    private static final String MENU_OPTIONS = """
                 1 - Iniciar carga
                 2 - Comprar LB Coins
                 3 - Ver histórico de cargas desse mês

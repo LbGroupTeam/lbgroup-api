@@ -3,6 +3,7 @@ package br.simplipark.chatbot.messagedispatcher.infobip;
 import br.simplipark.chatbot.ChatbotMessage;
 import br.simplipark.chatbot.messagedispatcher.MessageDispatcher;
 import br.simplipark.util.HttpUtil;
+import br.simplipark.util.NetworkProperties;
 import br.simplipark.util.Util;
 import br.simplipark.util.files.MessageableFile;
 import lombok.Data;
@@ -31,15 +32,12 @@ public class InfobipMessageDispatcher implements MessageDispatcher {
     private final String baseUrl;
     private final String senderNumber;
 
-    private final String fileWebhookUrl;
-
-    public InfobipMessageDispatcher(@Value("${infobip.api_key}") String apiKey, @Value("${infobip.base_whatsapp_url}") String baseUrl, @Value("${infobip.file_webhook_url}") String fileWebhookUrl, @Value("${sender.number}") String senderNumber) {
+    public InfobipMessageDispatcher(@Value("${infobip.api_key}") String apiKey, @Value("${infobip.base_whatsapp_url}") String baseUrl, @Value("${sender.number}") String senderNumber) {
         this.apiKey = apiKey;
         this.baseUrl = baseUrl;
         this.senderNumber = senderNumber;
-        this.fileWebhookUrl = fileWebhookUrl;
 
-        log.info("InfobipMessageDispatcher created with baseUrl: {}, senderNumber: {}, fileWebhookUrl: {}", baseUrl, senderNumber, fileWebhookUrl);
+        log.info("InfobipMessageDispatcher created with baseUrl: {}, senderNumber: {}", baseUrl, senderNumber);
     }
 
     @Override
@@ -64,7 +62,7 @@ public class InfobipMessageDispatcher implements MessageDispatcher {
     public void sendFile(String contact, MessageableFile file) {
         log.info("Sending file to {}: {}", contact, file);
 
-        FileContent fileContent = new FileContent(fileWebhookUrl + file.id(), file.name());
+        FileContent fileContent = new FileContent(NetworkProperties.externalHttpsUrl + "/files/" + file.id(), file.name());
 
         MessagePayloadDTO messagePayload = buildMessagePayloadDTO(contact, fileContent);
 

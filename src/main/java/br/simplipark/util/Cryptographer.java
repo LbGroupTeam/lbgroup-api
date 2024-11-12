@@ -21,11 +21,6 @@ public class Cryptographer {
         }
     }
 
-    public static SecretKey generateSecretKey() {
-        byte[] decodedKey = Base64.getDecoder().decode("JPR/5EQrwO9/p+73pD1IFpWlJdXvR+UpghGRk25W26g=");
-        return new SecretKeySpec(decodedKey, ALGORITHM);
-    }
-
     public static String encryptUrlSafe(String data) throws Exception {
         Cipher cipher = Cipher.getInstance(ALGORITHM);
         cipher.init(Cipher.ENCRYPT_MODE, DEFAULT_SECRET_KEY);
@@ -43,5 +38,10 @@ public class Cryptographer {
         log.info("Data decrypted successfully.");
 
         return new String(decryptedData);
+    }
+
+    private static SecretKey generateSecretKey() {
+        byte[] decodedKey = Base64.getDecoder().decode("JPR/5EQrwO9/p+73pD1IFpWlJdXvR+UpghGRk25W26g=");
+        return new SecretKeySpec(decodedKey, ALGORITHM);
     }
 }

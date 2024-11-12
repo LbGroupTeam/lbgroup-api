@@ -39,6 +39,6 @@ public class IsolatedUser {
     private double lbCoinsUsu;
 
     public User toUser() {
-        return new User(idUsu, String.valueOf(cpfUsu), accTypeUsu);
+        return new User(idUsu, String.valueOf(cpfUsu), nomeUsu, accTypeUsu);
     }
 }
