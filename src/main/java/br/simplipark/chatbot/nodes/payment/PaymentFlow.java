@@ -14,6 +14,7 @@ import br.simplipark.payment.model.PaymentOutcome;
 import br.simplipark.user.User;
 import br.simplipark.user.UserService;
 import br.simplipark.util.FormatingUtils;
+import br.simplipark.util.Util;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -64,6 +65,12 @@ public class PaymentFlow {
     private void handlePaymentMethodsSelection(ChatbotUser chatbotUser, ChatbotMessage chatbotMessage) {
         if (chatbotMessage.body().isEmpty()) {
             showPaymentInfo(chatbotUser);
+
+            return;
+        }
+
+        if (Util.isNotInt(chatbotMessage.body())) {
+            messageDispatcher.queueMessage(chatbotUser, "Opção inválida. Por favor, escolha uma das opções disponíveis.");
 
             return;
         }

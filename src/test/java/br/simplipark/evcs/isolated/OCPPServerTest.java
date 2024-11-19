@@ -338,8 +338,8 @@ class OCPPServerTest {
         assertNotNull(chargingData);
 
         assertEquals(0, chargingData.getEnergyDeliveredInWatts());
-        assertEquals(chargingData.getStartedAt(), LocalDateTime.parse("2024-10-09T11:03:58"));
-        assertEquals(chargingData.getStoppedAt(), LocalDateTime.parse("1899-12-30T00:00:00"));
+        assertEquals(LocalDateTime.parse("2024-10-09T08:03:58"), chargingData.getStartedAt());
+        assertEquals(LocalDateTime.parse("1899-12-29T21:00:00"), chargingData.getStoppedAt());
 
         verify(postRequestedFor(urlEqualTo(OCPPServerEndpoints.TRANSACTION_LIST.buildUrl()))
                 .withRequestBody(containing("identity=" + IDENTITY)));

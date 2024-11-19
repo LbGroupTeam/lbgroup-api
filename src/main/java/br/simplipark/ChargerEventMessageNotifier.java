@@ -58,7 +58,7 @@ public class ChargerEventMessageNotifier {
         var args = new ArrayList<>(List.of(
                 keyword,
                 user.name() + " (" + chargeEvent.user().cpf() + ")",
-                chargeEvent.charger().name()
+                chargeEvent.charger().toHumanString()
         ));
 
         args.addAll(PaymentInfoBuilder.buildChargingDataPaymentInfoArgs(chargeEvent.chargingData(), chargeEvent.amountDue()));
