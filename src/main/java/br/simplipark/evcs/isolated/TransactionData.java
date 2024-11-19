@@ -24,9 +24,9 @@ public record TransactionData(
                 transactionJson.get("Identity").asText(),
                 transactionJson.get("ConnectorId").asInt(),
                 transactionJson.get("IdTag").asText(),
-                LocalDateTime.parse(transactionJson.get("StartDate/Time").asText(), dateTimeFormatter),
+                LocalDateTime.parse(transactionJson.get("StartDate/Time").asText(), dateTimeFormatter).minusHours(3),
                 transactionJson.get("StartValue").asLong(),
-                LocalDateTime.parse(transactionJson.get("StopDate/Time").asText(), dateTimeFormatter),
+                LocalDateTime.parse(transactionJson.get("StopDate/Time").asText(), dateTimeFormatter).minusHours(3),
                 transactionJson.get("StopValue").asLong()
         );
     }
