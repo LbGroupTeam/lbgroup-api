@@ -1,4 +1,4 @@
-package br.simplipark;
+package br.simplipark.monitoring;
 
 import br.simplipark.chatbot.messagedispatcher.MessageDispatcher;
 import br.simplipark.chatbot.nodes.payment.PaymentInfoBuilder;

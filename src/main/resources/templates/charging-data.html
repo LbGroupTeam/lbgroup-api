@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Charging Data</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css">
+</head>
+<body>
+<div class="container-fluid">
+    <h1 class="mt-4">Charging Data</h1>
+    <table class="table table-borderless mt-4">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Transaction ID</th>
+            <th>Energy Delivered (Watts)</th>
+            <th>Started At</th>
+            <th>Stopped At</th>
+            <th>Amount (BRL)</th>
+            <th>Status</th>
+            <th>CPF</th>
+            <th>Name</th>
+            <th>Location</th>
+            <th>Owner</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="data : ${chargingData}"
+            th:style="|background-color:
+                ${data.highlightColor == 'green' ? '#d1e7dd' :
+                data.highlightColor == 'yellow' ? '#fff0a0' :
+                data.highlightColor == 'red' ? '#f9bdbf' : ''}|">
+            <td th:text="${data.id}"></td>
+            <td th:text="${data.transactionId}"></td>
+            <td th:text="${data.energyDeliveredInWatts}"></td>
+            <td th:text="${data.startedAt}"></td>
+            <td th:text="${data.stoppedAt}"></td>
+            <td th:text="${data.amountBrl}"></td>
+            <td th:text="${data.status}"></td>
+            <td th:text="${data.cpfUsu}"></td>
+            <td th:text="${data.nomeUsu}"></td>
+            <td th:text="${data.localCharge}"></td>
+            <td th:text="${data.ownerCharger}"></td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>

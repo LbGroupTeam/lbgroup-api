@@ -3,6 +3,7 @@ package br.simplipark;
 import br.simplipark.chatbot.messagedispatcher.MessageDispatcher;
 import br.simplipark.evcs.UserChargerService;
 import br.simplipark.evcs.model.ChargeEvent;
+import br.simplipark.monitoring.ChargerEventMessageNotifier;
 import br.simplipark.test.TestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
