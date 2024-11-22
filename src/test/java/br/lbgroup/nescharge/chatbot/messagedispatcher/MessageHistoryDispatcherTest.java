@@ -121,6 +121,11 @@ class MessageHistoryDispatcherTest {
         }
 
         @Override
+        public void sendLocationRequest(String contact, String description) {
+            // Do nothing, this is a mock
+        }
+
+        @Override
         public void sendFile(String contact, MessageableFile file) {
             // Do nothing, this is a mock
         }
@@ -131,7 +136,7 @@ class MessageHistoryDispatcherTest {
         }
 
         public void simulateMessageReceived(String contact, String message) {
-            messageHandler.accept(new ChatbotMessage(contact, message));
+            messageHandler.accept(ChatbotMessage.textMessage(contact, message));
         }
     }
 }

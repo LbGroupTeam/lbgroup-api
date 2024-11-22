@@ -35,6 +35,9 @@ public class IncomingMessageDTO {
         public static class Message {
             private String type;
             private String text;
+
+            private Double latitude;
+            private Double longitude;
         }
 
         @Data
@@ -57,7 +60,7 @@ public class IncomingMessageDTO {
         var result = new Result();
         result.setFrom(from);
         result.setTo(to);
-        result.setMessage(new Result.Message("TEXT", text));
+        result.setMessage(new Result.Message("TEXT", text, null, null));
 
         var incomingMessageDTO = new IncomingMessageDTO();
         incomingMessageDTO.setResults(List.of(result));

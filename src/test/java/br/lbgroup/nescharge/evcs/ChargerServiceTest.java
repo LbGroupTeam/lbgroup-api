@@ -1,5 +1,6 @@
 package br.lbgroup.nescharge.evcs;
 
+import br.lbgroup.commons.util.Location;
 import br.lbgroup.nescharge.evcs.chargingdata.ChargingData;
 import br.lbgroup.nescharge.evcs.chargingdata.ChargingDataRelationsService;
 import br.lbgroup.nescharge.evcs.isolated.Chargepoint;
@@ -41,7 +42,6 @@ class ChargerServiceTest {
 
         charger = mock(Charger.class);
 
-        // Mock common charger behavior
         setupChargerMocks();
 
         chargerService = new ChargerService(chargepointRepository, ocppServer, chargingDataRelationsService);
@@ -52,6 +52,32 @@ class ChargerServiceTest {
         when(mapMock.get(anyString())).thenReturn("1");
         when(charger.metadata()).thenReturn(mapMock);
         when(charger.merge(any())).thenReturn(charger);
+    }
+
+    @Test
+    void testSortChargersByProximity() {
+        var locations = List.of(
+            new Location(0, 0),
+            new Location(0, 45),
+            new Location(90, 0)
+        );
+
+        var chargepoints = List.of(
+            mockChargepointWithLocation(locations.get(2)),
+            mockChargepointWithLocation(locations.get(0)),
+            mockChargepointWithLocation(locations.get(1))
+        );
+
+        when(chargepointRepository.findAllByOperationModeNot(OperationMode.DISABLED)).thenReturn(chargepoints);
+        when(ocppServer.getChargers()).thenReturn(List.of());
+
+        var chargers = chargerService.getChargersSortedByProximity(new Location(0, 0));
+
+        assertEquals(3, chargers.size());
+
+        assertEquals(locations.get(0), chargers.get(0).location());
+        assertEquals(locations.get(1), chargers.get(1).location());
+        assertEquals(locations.get(2), chargers.get(2).location());
     }
 
     @Test
@@ -180,7 +206,7 @@ class ChargerServiceTest {
 
     @Test
     void testOnStopChargingAutomatically_ShouldNotRegisterCallbackIfNotAutomatic() {
-        Charger nonAutomaticCharger = new Charger(CHARGER_NAME_1, null, null, OWNER_1, OperationMode.MANUAL, Map.of());
+        Charger nonAutomaticCharger = new Charger(CHARGER_NAME_1, null, null, OWNER_1, OperationMode.MANUAL);
 
         chargerService.onStopChargingAutomatically(nonAutomaticCharger, null);
 
@@ -230,8 +256,8 @@ class ChargerServiceTest {
         );
 
         List<Charger> ocppChargers = List.of(
-                new Charger(CHARGER_NAME_1, null, null, OWNER_1, OperationMode.AUTOMATIC_OCPP, Map.of()),
-                new Charger(CHARGER_NAME_2, null, null, OWNER_2, OperationMode.AUTOMATIC_OCPP, Map.of())
+                new Charger(CHARGER_NAME_1, null, null, OWNER_1, OperationMode.AUTOMATIC_OCPP),
+                new Charger(CHARGER_NAME_2, null, null, OWNER_2, OperationMode.AUTOMATIC_OCPP)
         );
 
         when(chargepointRepository.findAllByOperationModeNot(OperationMode.DISABLED)).thenReturn(databaseChargers);
@@ -256,8 +282,8 @@ class ChargerServiceTest {
         );
 
         List<Charger> ocppChargers = List.of(
-                new Charger(CHARGER_NAME_1, null, null, OWNER_1, OperationMode.AUTOMATIC_OCPP, Map.of()), // Only one matches
-                new Charger(CHARGER_NAME_3, null, null, OWNER_3, OperationMode.AUTOMATIC_OCPP, Map.of())
+                new Charger(CHARGER_NAME_1, null, null, OWNER_1, OperationMode.AUTOMATIC_OCPP), // Only one matches
+                new Charger(CHARGER_NAME_3, null, null, OWNER_3, OperationMode.AUTOMATIC_OCPP)
         );
 
         when(chargepointRepository.findAllByOperationModeNot(OperationMode.DISABLED)).thenReturn(databaseChargers);
@@ -297,11 +323,21 @@ class ChargerServiceTest {
         return chargepoint;
     }
 
+    private Chargepoint mockChargepointWithLocation(Location location) {
+        Chargepoint chargepoint = mock(Chargepoint.class);
+
+        var charger = new Charger(CHARGER_NAME_1, null, null, OWNER_1, OperationMode.AUTOMATIC_OCPP, location, null);
+
+        when(chargepoint.toModel()).thenReturn(charger);
+
+        return chargepoint;
+    }
+
     private List<Charger> buildSampleOcppChargers() {
         return List.of(
-                new Charger(CHARGER_NAME_1, null, null, OWNER_1, OperationMode.AUTOMATIC_OCPP, null),
-                new Charger(CHARGER_NAME_2, null, null, OWNER_2, OperationMode.AUTOMATIC_OCPP, null),
-                new Charger(CHARGER_NAME_3, null, null, OWNER_3, OperationMode.AUTOMATIC_OCPP, null)
+                new Charger(CHARGER_NAME_1, null, null, OWNER_1, OperationMode.AUTOMATIC_OCPP),
+                new Charger(CHARGER_NAME_2, null, null, OWNER_2, OperationMode.AUTOMATIC_OCPP),
+                new Charger(CHARGER_NAME_3, null, null, OWNER_3, OperationMode.AUTOMATIC_OCPP)
         );
     }
 

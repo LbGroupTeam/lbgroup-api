@@ -1,5 +1,6 @@
 package br.lbgroup.nescharge.evcs;
 
+import br.lbgroup.commons.util.Location;
 import br.lbgroup.nescharge.evcs.chargingdata.ChargingData;
 import br.lbgroup.nescharge.evcs.chargingdata.ChargingDataRelationsService;
 import br.lbgroup.nescharge.evcs.isolated.Chargepoint;
@@ -41,6 +42,14 @@ public class ChargerService {
         var ocppChargers = ocppServer.getChargers();
 
         return mergeDatabaseChargerWithOcppCharger(chargepoint, ocppChargers);
+    }
+
+    public List<Charger> getChargersSortedByProximity(Location location) {
+        var chargers = getChargers();
+
+        chargers.sort(Comparator.comparingDouble(charger -> charger.location().distanceTo(location)));
+
+        return chargers;
     }
 
     public List<Charger> getChargers() {

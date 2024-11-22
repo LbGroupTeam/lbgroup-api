@@ -29,8 +29,6 @@ public class ChargeVehicleFlow {
 
     private final PaymentService paymentService;
 
-    private List<Charger> chargers;
-
     public ChargeVehicleFlow(QueueMessageDispatcher messageDispatcher, ConversationPathManager conversationPathManager, UserChargerService userChargerService, ChargerService chargerService, PaymentService paymentService) {
         this.messageDispatcher = messageDispatcher;
         this.conversationPathManager = conversationPathManager;
@@ -51,6 +49,7 @@ public class ChargeVehicleFlow {
         ChargeVehicleFlowStage currentStage = ChargeVehicleFlowStage.valueOf(conversationPathManager.getNextNode(user));
 
         switch (currentStage) {
+            case ASK_FOR_LOCATION -> handleLocationRequest(user, chatbotMessage);
             case SELECT_CHARGERS -> handleChargersMenuOption(user, chatbotMessage);
             case CHARGING -> handleChargingMessage(user, chatbotMessage);
         }
@@ -63,19 +62,29 @@ public class ChargeVehicleFlow {
             return;
         }
 
-        conversationPathManager.addNodeToPathImmediately(user, SELECT_CHARGERS.name());
+        messageDispatcher.sendLocationRequestMessage(user, "Por favor, compartilhe sua localização para que possamos encontrar o carregador mais próximo.");
+
+        conversationPathManager.addNodeToPath(user, ASK_FOR_LOCATION.name());
     }
 
-    private void handleChargersMenuOption(ChatbotUser chatbotUser, ChatbotMessage message) {
-        if (message.body().isEmpty()) {
-            chargers = chargerService.getChargers();
-
-            messageDispatcher.queueMessage(chatbotUser, "Segue a lista de carregadores:\n\n" + buildChargersList(chargers) +
-                    "\nQual o carregador você está conectado?");
+    private void handleLocationRequest(ChatbotUser chatbotUser, ChatbotMessage chatbotMessage) {
+        if (chatbotMessage.location() == null) {
+            messageDispatcher.sendLocationRequestMessage(chatbotUser, "Por favor, compartilhe sua localização para que possamos encontrar o carregador mais próximo.");
 
             return;
         }
 
+        var chargers = chargerService.getChargersSortedByProximity(chatbotMessage.location());
+
+        chatbotUser.sessionData().setChargersByProximity(chargers);
+
+        messageDispatcher.queueMessage(chatbotUser, "Segue a lista de carregadores:\n\n" + buildChargersList(chargers) +
+                                                    "\nQual o carregador você está conectado?");
+
+        conversationPathManager.replaceLastPathNode(chatbotUser, SELECT_CHARGERS.name());
+    }
+
+    private void handleChargersMenuOption(ChatbotUser chatbotUser, ChatbotMessage message) {
         if (Util.isNotInt(message.body())) {
             handleInvalidChargerOption(chatbotUser, message);
 
@@ -84,6 +93,7 @@ public class ChargeVehicleFlow {
 
         int chargerIndex = Integer.parseInt(message.body()) - 1;
 
+        var chargers = chatbotUser.sessionData().getChargersByProximity();
         if (chargerIndex < 0 || chargerIndex >= chargers.size()) {
             handleInvalidChargerOption(chatbotUser, message);
 
@@ -95,7 +105,7 @@ public class ChargeVehicleFlow {
         boolean startedSucessfully = userChargerService.startCharging(chatbotUser.user(), charger, () -> onStopChargingAutomatically(chatbotUser));
         if (!startedSucessfully) {
             messageDispatcher.queueMessage(chatbotUser, "Tivemos problemas para iniciar a carga no carregador " + charger.name() + ".\n" +
-                    "Por favor, verifique se seu carro está conectado ao carregador corretamente. Caso esteja, contate um de nossos representantes.");
+                                                        "Por favor, verifique se seu carro está conectado ao carregador corretamente. Caso esteja, contate um de nossos representantes.");
 
             return;
         }
@@ -103,8 +113,8 @@ public class ChargeVehicleFlow {
         chatbotUser.sessionData().setSelectedCharger(charger);
 
         messageDispatcher.queueMessage(chatbotUser, "Você está conectado ao carregador " + charger.toHumanString() + ".\nSua carga está em andamento.\n" +
-                "Você será avisado assim que sua carga finalizar.\n\n" +
-                "Caso queira parar a carga manualmente, digite 'parar'.");
+                                                    "Você será avisado assim que sua carga finalizar.\n\n" +
+                                                    "Caso queira parar a carga manualmente, digite 'parar'.");
 
         conversationPathManager.replaceLastPathNode(chatbotUser, CHARGING.name());
     }
@@ -112,7 +122,7 @@ public class ChargeVehicleFlow {
     private void handleInvalidChargerOption(ChatbotUser chatbotUser, ChatbotMessage message) {
         messageDispatcher.queueMessage(chatbotUser, "Carregador '" + message.body() + "' inválido. Por favor, escolha um carregador válido.\n\n");
 
-        conversationPathManager.replaceLastPathNodeImmediately(chatbotUser, SELECT_CHARGERS.name());
+        conversationPathManager.replaceLastPathNode(chatbotUser, SELECT_CHARGERS.name());
     }
 
     private void handleChargingMessage(ChatbotUser user, ChatbotMessage chatbotMessage) {

@@ -12,7 +12,7 @@ record OCPPCharger(String identity, String address, Connection connection) {
         Map<String, String> metadata = new HashMap<>();
         metadata.put(OCPP_IDENTITY_KEY, identity + "/" + connection.ip());
 
-        return new Charger(identity.toUpperCase(), null, null, null, null, metadata);
+        return new Charger(identity.toUpperCase(), null, null, null, null, null, metadata);
     }
 
     public static String parseOCPPIdentity(Charger charger) {

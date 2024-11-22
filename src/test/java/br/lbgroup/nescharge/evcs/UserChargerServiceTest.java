@@ -19,7 +19,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
@@ -198,6 +197,6 @@ class UserChargerServiceTest {
 
     private Charger createDummyCharger() {
         Address address = new Address("123 Main St", "SomeCity", "12345", "72231216");
-        return new Charger("Charger1", "Position1", address, "Owner1", OperationMode.AUTOMATIC_OCPP, new HashMap<>());
+        return new Charger("Charger1", "Position1", address, "Owner1", OperationMode.AUTOMATIC_OCPP);
     }
 }

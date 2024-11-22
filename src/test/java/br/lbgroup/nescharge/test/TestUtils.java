@@ -31,7 +31,7 @@ public class TestUtils {
     }
 
     public static Charger createSampleCharger() {
-        return new Charger("CHARGER 1", "LEFT", null, "SimpliPark", null, null);
+        return new Charger("CHARGER 1", "LEFT", null, "SimpliPark", null);
     }
 
     public static ChargingData createSampleChargingData() {

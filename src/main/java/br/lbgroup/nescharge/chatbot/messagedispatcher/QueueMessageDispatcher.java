@@ -20,6 +20,8 @@ public class QueueMessageDispatcher {
     private final Map<ChatbotUser, StringBuilder> userMessages = new HashMap<>();
     private final Map<ChatbotUser, List<MessageableFile>> userFiles = new HashMap<>();
 
+    private final Map<ChatbotUser, List<String>> locationRequests = new HashMap<>();
+
     private final MessageDispatcher messageDispatcher;
 
     public QueueMessageDispatcher(MessageDispatcher messageDispatcher) {
@@ -42,10 +44,20 @@ public class QueueMessageDispatcher {
         sb.append(message);
     }
 
+    public void sendLocationRequestMessage(ChatbotUser chatbotUser, String description) {
+        locationRequests.putIfAbsent(chatbotUser, new ArrayList<>());
+
+        var requests = locationRequests.get(chatbotUser);
+
+        requests.add(description);
+    }
+
     public void sendQueuedMessages(ChatbotUser contact) {
         sendTextMessages(contact);
 
         sendFileMessages(contact);
+
+        sendLocationRequests(contact);
     }
 
     private void sendTextMessages(ChatbotUser contact) {
@@ -74,6 +86,20 @@ public class QueueMessageDispatcher {
         }
 
         userFiles.remove(contact);
+    }
+
+    private void sendLocationRequests(ChatbotUser contact) {
+        var requests = locationRequests.get(contact);
+
+        if (requests == null) {
+            return;
+        }
+
+        for (var request : requests) {
+            messageDispatcher.sendLocationRequest(contact.chatId(), request);
+        }
+
+        locationRequests.remove(contact);
     }
 
     public void clearQueuedMessages(ChatbotUser chatbotUser) {

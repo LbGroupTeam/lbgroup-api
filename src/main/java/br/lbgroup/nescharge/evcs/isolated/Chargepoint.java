@@ -1,5 +1,6 @@
 package br.lbgroup.nescharge.evcs.isolated;
 
+import br.lbgroup.commons.util.Location;
 import br.lbgroup.nescharge.evcs.model.Address;
 import br.lbgroup.nescharge.evcs.model.Charger;
 import br.lbgroup.nescharge.evcs.model.OperationMode;
@@ -32,6 +33,9 @@ public class Chargepoint {
     @Enumerated(EnumType.STRING)
     private OperationMode operationMode;
 
+    private double latitude;
+    private double longitude;
+
     private static final String CHARGEPOINT_ID_KEY = "chargepoint.id";
 
     public Charger toModel() {
@@ -49,6 +53,7 @@ public class Chargepoint {
                 ),
                 ownerCharger,
                 operationMode,
+                new Location(latitude, longitude),
                 metadata
         );
     }

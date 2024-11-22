@@ -1,5 +1,6 @@
 package br.lbgroup.nescharge.chatbot.messagedispatcher.infobip;
 
+import br.lbgroup.commons.util.Location;
 import br.lbgroup.nescharge.chatbot.ChatbotMessage;
 import br.lbgroup.nescharge.chatbot.messagedispatcher.MessageDispatcher;
 import br.lbgroup.commons.util.HttpUtil;
@@ -59,6 +60,17 @@ public class InfobipMessageDispatcher implements MessageDispatcher {
     }
 
     @Override
+    public void sendLocationRequest(String contact, String description) {
+        log.info("Sending location request to {}: {}", contact, description);
+
+        var locationContent = LocationContent.of(description);
+
+        MessagePayloadDTO messagePayload = buildMessagePayloadDTO(contact, locationContent);
+
+        sendHttpRequestWithPayload(Util.serialize(messagePayload), baseUrl + "/interactive/location-request");
+    }
+
+    @Override
     public void sendFile(String contact, MessageableFile file) {
         log.info("Sending file to {}: {}", contact, file);
 
@@ -81,7 +93,7 @@ public class InfobipMessageDispatcher implements MessageDispatcher {
         for (IncomingMessageDTO.Result result : messageDTO.getResults()) {
             if (isMessageInvalid(result)) continue;
 
-            var chatbotMessage = new ChatbotMessage(result.getFrom(), result.getMessage().getText());
+            var chatbotMessage = parseChatbotMessage(result);
             for (Consumer<ChatbotMessage> consumer : callbacks) {
                 consumer.accept(chatbotMessage);
             }
@@ -122,13 +134,26 @@ public class InfobipMessageDispatcher implements MessageDispatcher {
             return true;
         }
 
-        String body = result.getMessage().getText();
-        if (body == null) {
-            log.warn("Received message with null body");
-            return true;
+        return false;
+    }
+
+    private static ChatbotMessage parseChatbotMessage(IncomingMessageDTO.Result result) {
+        var message = result.getMessage();
+
+        if (message.getType().equals("TEXT")) {
+            return ChatbotMessage.textMessage(result.getFrom(), message.getText());
         }
 
-        return false;
+        if (message.getType().equals("LOCATION")) {
+            log.info("Received location message: {}", message);
+
+            var location = new Location(message.getLatitude(), message.getLongitude());
+            return ChatbotMessage.locationMessage(result.getFrom(), location);
+        }
+
+        log.warn("Received message with unknown type: {}", message.getType());
+
+        throw new IllegalArgumentException("Unknown message type: " + message.getType());
     }
 
     public record TemplateMessageDTO(List<MessagePayloadDTO> messages) {
@@ -155,6 +180,15 @@ public class InfobipMessageDispatcher implements MessageDispatcher {
     }
 
     public record TextContent(String text) implements Content {
+    }
+
+    public record LocationContent(Map<String, Object> body) implements Content {
+        public static LocationContent of(String description) {
+            Map<String, Object> body = new HashMap<>();
+            body.put("text", description);
+
+            return new LocationContent(body);
+        }
     }
 
     public record FileContent(String mediaUrl, String filename) implements Content {

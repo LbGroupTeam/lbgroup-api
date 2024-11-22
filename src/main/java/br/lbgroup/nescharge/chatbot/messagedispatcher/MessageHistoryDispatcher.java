@@ -50,9 +50,21 @@ public class MessageHistoryDispatcher implements MessageDispatcher {
     }
 
     @Override
+    public void sendLocationRequest(String contact, String description) {
+        log.info("Logging outgoing location request for contact: {}", contact);
+
+        String message = "Location request: " + description;
+
+        logMessageToHistory(contact, formatOutgoingMessage(message));
+        delegateDispatcher.sendLocationRequest(contact, description);
+    }
+
+    @Override
     public void sendFile(String contact, MessageableFile file) {
         log.info("Logging outgoing file for contact: {}", contact);
+
         String message = file.name() + " (" + file.id() + ")";
+
         logMessageToHistory(contact, formatOutgoingMessage(message));
         delegateDispatcher.sendFile(contact, file);
     }
@@ -61,7 +73,7 @@ public class MessageHistoryDispatcher implements MessageDispatcher {
     public void onMessageReceived(Consumer<ChatbotMessage> messageHandler) {
         Consumer<ChatbotMessage> loggingMessageHandler = chatbotMessage -> {
             log.info("Logging incoming message for contact: {}", chatbotMessage.from());
-            logMessageToHistory(chatbotMessage.from(), formatIncomingMessage(chatbotMessage.from(), chatbotMessage.body()));
+            logMessageToHistory(chatbotMessage.from(), formatIncomingMessage(chatbotMessage));
             messageHandler.accept(chatbotMessage);
         };
 
@@ -81,7 +93,14 @@ public class MessageHistoryDispatcher implements MessageDispatcher {
         }
     }
 
-    private String formatIncomingMessage(String contact, String message) {
+    private String formatIncomingMessage(ChatbotMessage chatbotMessage) {
+        String contact = chatbotMessage.from();
+
+        String message = chatbotMessage.body();
+        if (chatbotMessage.location() != null) {
+            message = "Location request: " + chatbotMessage.location();
+        }
+
         return String.format("[%s] %s: %s", getCurrentTimestamp(), contact, message);
     }
 
