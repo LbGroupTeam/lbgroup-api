@@ -1,0 +1,13 @@
+package br.lbgroup.commons.user.reporting;
+
+import br.lbgroup.nescharge.evcs.chargingdata.ChargingData;
+
+import java.time.LocalDateTime;
+
+
+public record HistoricalChargingData(double energyDeliveredInKWh, LocalDateTime startedAt, LocalDateTime stoppedAt, double costInBrl, double costInLbCoins) {
+
+    public static HistoricalChargingData fromChargingData(ChargingData chargingData, double costInBrl, double costInLbCoins) {
+        return new HistoricalChargingData(chargingData.getEnergyDeliveredInKWh(), chargingData.getStartedAt(), chargingData.getStoppedAt(), costInBrl, costInLbCoins);
+    }
+}
