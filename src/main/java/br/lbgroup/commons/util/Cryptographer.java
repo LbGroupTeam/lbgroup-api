@@ -1,6 +1,7 @@
 package br.lbgroup.commons.util;
 
 import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -38,6 +39,19 @@ public class Cryptographer {
         log.info("Data decrypted successfully.");
 
         return new String(decryptedData);
+    }
+
+    public static String generateSecretKeyAsString() throws Exception {
+        SecretKey secretKey = generateRandomSecretKey();
+        return Base64.getEncoder().encodeToString(secretKey.getEncoded());
+    }
+
+    public static SecretKey generateRandomSecretKey() throws Exception {
+        KeyGenerator keyGenerator = KeyGenerator.getInstance(ALGORITHM);
+
+        keyGenerator.init(256);
+
+        return keyGenerator.generateKey();
     }
 
     private static SecretKey generateSecretKey() {

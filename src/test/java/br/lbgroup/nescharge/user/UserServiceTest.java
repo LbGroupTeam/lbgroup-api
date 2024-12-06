@@ -67,7 +67,7 @@ public class UserServiceTest {
     private static IsolatedUser createSampleIsolatedUser(int idUsu, String number, float lbCoinsUsu) {
         IsolatedUser user = new IsolatedUser();
         user.setIdUsu(idUsu);
-        user.setCpfUsu(Util.parseCpfToLong(number));
+        user.setCpfUsu(Util.parseCpf(number));
         user.setLbCoinsUsu(lbCoinsUsu);
         user.setComplementoUsu("Teste");
         user.setNumCasaUsu(0);

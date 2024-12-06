@@ -27,7 +27,7 @@ public class TestUtils {
     }
 
     public static User createSampleUser(long id) {
-        return new User(id, "56788269050", "Joao", "VIP");
+        return new User(id, "56788269050", "Joao", "VIP", "password", "salt");
     }
 
     public static Charger createSampleCharger() {

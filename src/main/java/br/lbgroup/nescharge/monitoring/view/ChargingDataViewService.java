@@ -17,7 +17,7 @@ public class ChargingDataViewService {
 
     public List<ChargingDataFormattedView> getChargingDataView() {
         String viewQuery = """
-                        SELECT new br.simplipark.monitoring.view.ChargingDataView(
+                        SELECT new br.lbgroup.nescharge.monitoring.view.ChargingDataView(
                             cd.id, ocdr.transactionId, cd.energyDeliveredInWatts,
                             cd.startedAt, cd.stoppedAt, p.amount, p.status, u.cpfUsu, u.nomeUsu,
                             c.localCharge, c.ownerCharger)

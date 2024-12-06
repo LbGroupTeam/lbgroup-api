@@ -19,7 +19,7 @@ public class Util {
         return cpfNumbers.length() != 11;
     }
 
-    public static long parseCpfToLong(String cpf) {
+    public static long parseCpf(String cpf) {
         if (isCpfInvalid(cpf)) {
             return 0;
         }

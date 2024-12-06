@@ -138,7 +138,7 @@ public class UserChargerService {
     }
 
     private double calculateChargingCost(ChargingData chargingData, String chargerOwner, User user) {
-        log.debug("Calculating charging cost for User [{}] with ChargingData ID [{}].", user.id(), chargingData.getId());
+        log.debug("Calculating charging cost for User [{}] with ChargingData ID [{}].", user, chargingData.getId());
 
         var userType = userService.getUserById(user.id()).type();
 

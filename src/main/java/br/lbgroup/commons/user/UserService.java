@@ -3,7 +3,11 @@ package br.lbgroup.commons.user;
 import br.lbgroup.commons.user.isolated.IsolatedUser;
 import br.lbgroup.commons.user.isolated.IsolatedUserRepository;
 import br.lbgroup.commons.util.Util;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+
+import java.util.Optional;
 
 @Service
 public class UserService {
@@ -19,7 +23,7 @@ public class UserService {
     }
 
     public User getUserByCpf(String cpf) {
-        long parsedCpf = Util.parseCpfToLong(cpf);
+        long parsedCpf = Util.parseCpf(cpf);
         IsolatedUser isolatedUser = isolatedUserRepository.findByCpfUsu(parsedCpf);
         if (isolatedUser == null) {
             return null;
@@ -43,5 +47,19 @@ public class UserService {
     public double getLbCoinsBalance(User user) {
         IsolatedUser isolatedUser = isolatedUserRepository.findById(user.id()).orElseThrow();
         return isolatedUser.getLbCoinsUsu();
+    }
+
+    public static Optional<User> getAuthenticatedUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return Optional.empty();
+        }
+
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof User) {
+            return Optional.of((User) principal);
+        }
+
+        return Optional.empty();
     }
 }

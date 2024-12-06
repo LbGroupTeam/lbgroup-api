@@ -96,7 +96,7 @@ public class PaymentFlow {
             return;
         }
 
-        userPayments.putIfAbsent(chatbotUser.chatId(), pendingPayments);
+        userPayments.put(chatbotUser.chatId(), pendingPayments);
 
         var paymentInfoMessage = paymentInfoBuilder.buildPaymentInfoMessage(pendingPayments);
 
