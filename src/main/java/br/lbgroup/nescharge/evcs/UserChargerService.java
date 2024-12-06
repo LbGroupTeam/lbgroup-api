@@ -1,5 +1,6 @@
 package br.lbgroup.nescharge.evcs;
 
+import br.lbgroup.commons.user.UserService;
 import br.lbgroup.nescharge.evcs.chargingdata.ChargingData;
 import br.lbgroup.nescharge.evcs.chargingdata.ChargingDataRelationsService;
 import br.lbgroup.nescharge.evcs.model.ChargeEvent;
@@ -25,16 +26,18 @@ public class UserChargerService {
     private final PaymentService paymentService;
     private final ChargingDataRelationsService chargingDataRelationsService;
     private final PricingRecordRepository pricingRecordRepository;
+    private final UserService userService;
 
     private final Map<User, Long> userCurrentChargingDataIds = new HashMap<>();
 
     private final List<Consumer<ChargeEvent>> listeners = new ArrayList<>();
 
-    public UserChargerService(ChargerService chargerService, PaymentService paymentService, ChargingDataRelationsService chargingDataRelationsService, PricingRecordRepository pricingRecordRepository) {
+    public UserChargerService(ChargerService chargerService, PaymentService paymentService, ChargingDataRelationsService chargingDataRelationsService, PricingRecordRepository pricingRecordRepository, UserService userService) {
         this.chargerService = chargerService;
         this.paymentService = paymentService;
         this.chargingDataRelationsService = chargingDataRelationsService;
         this.pricingRecordRepository = pricingRecordRepository;
+        this.userService = userService;
     }
 
     public boolean startCharging(User user, Charger charger, Runnable onStopChargingAutomatically) {
@@ -137,7 +140,11 @@ public class UserChargerService {
     private double calculateChargingCost(ChargingData chargingData, String chargerOwner, User user) {
         log.debug("Calculating charging cost for User [{}] with ChargingData ID [{}].", user.id(), chargingData.getId());
 
-        var pricingRecord = pricingRecordRepository.findByTypeClientPricesAndOwnerPrices(user.type(), chargerOwner);
+        var userType = userService.getUserById(user.id()).type();
+
+        log.info("User type [{}] found for User [{}] with ChargingData ID [{}].", userType, user.id(), chargingData.getId());
+
+        var pricingRecord = pricingRecordRepository.findByTypeClientPricesAndOwnerPrices(userType, chargerOwner);
         var costPerKwh = pricingRecord.getMultiplicatorPrices();
 
         log.debug("Pricing record [{}] found for User [{}] with ChargingData ID [{}].", pricingRecord, user.id(), chargingData.getId());

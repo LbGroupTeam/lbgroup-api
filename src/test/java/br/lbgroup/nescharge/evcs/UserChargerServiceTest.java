@@ -1,12 +1,12 @@
 package br.lbgroup.nescharge.evcs;
 
+import br.lbgroup.commons.user.UserService;
 import br.lbgroup.nescharge.evcs.chargingdata.ChargingData;
 import br.lbgroup.nescharge.evcs.chargingdata.ChargingDataRelationsService;
 import br.lbgroup.nescharge.evcs.model.Address;
 import br.lbgroup.nescharge.evcs.model.ChargeEventType;
 import br.lbgroup.nescharge.evcs.model.Charger;
 import br.lbgroup.nescharge.evcs.model.OperationMode;
-import br.simplipark.evcs.model.*;
 import br.lbgroup.nescharge.payment.PaymentService;
 import br.lbgroup.nescharge.payment.isolated.PricingRecord;
 import br.lbgroup.nescharge.payment.isolated.PricingRecordRepository;
@@ -33,6 +33,7 @@ class UserChargerServiceTest {
     private PaymentService paymentService;
     private ChargingDataRelationsService chargingDataRelationsService;
     private PricingRecordRepository pricingRecordRepository;
+    private UserService userService;
 
     private UserChargerService userChargerService;
 
@@ -47,8 +48,9 @@ class UserChargerServiceTest {
         paymentService = mock(PaymentService.class);
         chargingDataRelationsService = mock(ChargingDataRelationsService.class);
         pricingRecordRepository = mock(PricingRecordRepository.class);
+        userService = mockUserService();
 
-        userChargerService = new UserChargerService(chargerService, paymentService, chargingDataRelationsService, pricingRecordRepository);
+        userChargerService = new UserChargerService(chargerService, paymentService, chargingDataRelationsService, pricingRecordRepository, userService);
 
         user = TestUtils.createSampleUser();
         charger = createDummyCharger();
@@ -199,5 +201,11 @@ class UserChargerServiceTest {
     private Charger createDummyCharger() {
         Address address = new Address("123 Main St", "SomeCity", "12345", "72231216");
         return new Charger("Charger1", "Position1", address, "Owner1", OperationMode.AUTOMATIC_OCPP, new HashMap<>());
+    }
+
+    private static UserService mockUserService() {
+        var mock = mock(UserService.class);
+        when(mock.getUserById(anyLong())).thenReturn(TestUtils.createSampleUser());
+        return mock;
     }
 }
