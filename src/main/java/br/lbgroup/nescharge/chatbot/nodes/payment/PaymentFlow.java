@@ -118,32 +118,13 @@ public class PaymentFlow {
         double totalCostInLbCoins = LBCoinsConverter.convertBRLToLBCoins(PaymentService.calculateTotalCost(payments));
 
         if (chatbotMessage.body().isEmpty()) {
-            showLBCoinsPaymentInfo(chatbotUser, totalCostInLbCoins);
+            messageDispatcher.queueMessage(chatbotUser, "Você escolheu pagar com LBCoins.\n\n" +
+                                                        buildLbCoinsBalanceMessage(chatbotUser.user(), totalCostInLbCoins) +
+                                                        "\n\n");
 
-            return;
-        }
-
-        if ("voltar".equalsIgnoreCase(chatbotMessage.body())) {
-            conversationPathManager.replaceLastPathNodeImmediately(chatbotUser, SHOW_PAYMENT_METHODS.name());
-
-            return;
-        }
-
-        if ("confirmar".equalsIgnoreCase(chatbotMessage.body())) {
             continueWithLBCoinsPayment(chatbotUser, payments, totalCostInLbCoins);
+
         }
-    }
-
-    private void showLBCoinsPaymentInfo(ChatbotUser chatbotUser, double totalCostInLbCoins) {
-        if (userService.getLbCoinsBalance(chatbotUser.user()) < totalCostInLbCoins) {
-            handleUnsuficientLbCoinsBalance(chatbotUser, totalCostInLbCoins);
-
-            return;
-        }
-
-        messageDispatcher.queueMessage(chatbotUser, "Você escolheu pagar com LBCoins.\n\n" +
-                buildLbCoinsBalanceMessage(chatbotUser.user(), totalCostInLbCoins) +
-                "\n\nConfirma o pagamento? (Digite 'confirmar' para confirmar ou 'voltar' para escolher outra forma de pagamento.)");
     }
 
     private void continueWithLBCoinsPayment(ChatbotUser chatbotUser, List<Payment> payments, double totalCostInLbCoins) {
