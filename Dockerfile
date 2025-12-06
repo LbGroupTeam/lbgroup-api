@@ -1,16 +1,3 @@
-FROM maven:3.9-eclipse-temurin-17 AS build
-
-WORKDIR /app
-
-COPY pom.xml .
-RUN mvn -B dependency:resolve
-
-COPY src ./src
-RUN mvn -B -DskipTests package
-
-# Runtime stage
-FROM eclipse-temurin:17-jre
-WORKDIR /app
-COPY --from=build /app/target/*.jar app.jar
-
-CMD ["java", "-jar", "app.jar"]
+docker buildx build \
+  --build-arg INFOBIP_API_KEY="10575aebdbece683f7f7da0ce6645c0a-774d228c-a256-40ec-a4a6-e75d0b209368" \
+  -t lbgroup-api
