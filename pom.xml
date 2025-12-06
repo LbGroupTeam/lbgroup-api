@@ -72,8 +72,14 @@
             <version>8.0.33</version>
             <scope>runtime</scope>
         </dependency>
-
-        <dependency>
+<dependency>
+    <groupId>org.hibernate</groupId>
+    <artifactId>hibernate-community-dialects</artifactId>
+    <!-- Use a version compatible with your main Hibernate Core version (e.g., 6.x.x.Final) -->
+    <version>6.5.2.Final</version>
+</dependency> 
+             
+          <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <version>1.18.30</version>
